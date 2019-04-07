@@ -28,3 +28,10 @@ for n=1:arrayLength
 end
 
 largestNum
+
+% Automated feedback script
+test=Brooks_1_1.m;
+str = '&body= Hi Kai,  %0D%0A  %0D%0A    Your program works well, except for: '; 
+email=strcat('kbrooks@pdx.edu?subject=[PH322 feedback] %20', test, str ); 
+url = ['mailto:',email]; 
+web(url)
