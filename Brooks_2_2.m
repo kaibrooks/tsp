@@ -1,7 +1,7 @@
-% Title
+% Fibonacci Numbers
 % Kai brooks
-% 8 Apr 2019
-% Description
+% 10 Apr 2019
+% Computes a fibonacci sequence
 %
 % The Fibonacci sequence is named after an Italian mathematician: Leonardo
 % Bonacci (c. 1170 - c. 1250) known as Fibonacci, and also Leonardo of
@@ -36,11 +36,10 @@ f(2) = 1;
 goldenRatio = 1.61803398875; % Golden ratio
 loopCount = 0;
 
-
 for n=3:maxLoops
     loopCount = loopCount+1;
     
-    f(n)=f(n-2)+f(n-1);         % compute golden ratio values to an array
+    f(n) = f(n-2) + f(n-1);         % compute golden ratio values to an array
     ratio(n-2) = f(n)/f(n-1);   % put the first ratio in the starting index
     
     error =  ratio(n-2) / goldenRatio;  % error ratio of known and calculated
@@ -52,6 +51,13 @@ for n=3:maxLoops
     end
     
 end
+
+figure(1)
+plot(ratio)
+xlim([1 loopCount]) % Starting index is 1
+ylim([1.5 2])
+xlabel('loop')
+ylabel('ratio')
 
 fprintf('Break after %d loops\n', loopCount);
 fprintf('Calculated ratio: %f11 \n', ratio(loopCount)) 
