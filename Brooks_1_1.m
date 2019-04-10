@@ -24,14 +24,16 @@ largestNum = 0; % Set baseline number
 for n=1:arrayLength
     if a(n) > largestNum
         largestNum = a(n);
+        largestIndex = n;
     end
 end
 
 largestNum
+largestIndex
 
 % Automated feedback script
-test=Brooks_1_1.m;
-str = '&body= Hi Kai,  %0D%0A  %0D%0A    Your program works well, except for: '; 
-email=strcat('kbrooks@pdx.edu?subject=[PH322 feedback] %20', test, str ); 
-url = ['mailto:',email]; 
+test='Brooks_1_1.m';
+str = '&body= Hi Kai,  %0D%0A  %0D%0A    Your program works well, except for: ';
+email=strcat('kbrooks@pdx.edu?subject=[PH322 feedback] %20', test, str );
+url = ['mailto:',email];
 web(url)
