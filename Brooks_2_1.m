@@ -42,15 +42,17 @@ end
 
 T=2*pi*sqrt(l/g);
 
-period = T*(1/stepSize) % Adjustment for non-integer step size
-fprintf('The period is %f',period)
+fprintf('The period is %f',T)
 
 figure(1)
 plot(a)
-xlim([0 n])
+grid on
+axis tight
+
+xt = get(gca, 'XTick'); % Adjust the y-axis size
+set(gca, 'XTick',xt, 'XTickLabel',xt/(1/stepSize)) % Divide y-axis by step
 xlabel('\it t')
 ylabel('\it a(t)')
-
 
 % Automated feedback script
 % test='Brooks_2_1.m';
