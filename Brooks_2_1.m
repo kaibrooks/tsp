@@ -30,14 +30,20 @@ a_0 = 0.01;
 g = 9.8;
 l = 4;
 n = 0;
+stepSize = 0.01;
 
 %a(t) = a_0 * cos(sqrt(g/l)*t); % solution
-%T=2pi*sqrt(l/g) % period
+% T=2pi*sqrt(l/g) % period
  
-for t=0:0.01:10
+for t=0:stepSize:10
     n = n+1;    % Array index, since argument must be an integer
     a(n) = a_0 * cos(sqrt(g/l)*t);
 end
+
+T=2*pi*sqrt(l/g);
+
+period = T*(1/stepSize) % Adjustment for non-integer step size
+fprintf('The period is %f',period)
 
 figure(1)
 plot(a)
@@ -45,9 +51,10 @@ xlim([0 n])
 xlabel('\it t')
 ylabel('\it a(t)')
 
+
 % Automated feedback script
-test='Brooks_2_1.m';
-str = '&body= Hi Kai,  %0D%0A  %0D%0A    Your program works well, except for: ';
-email=strcat('kbrooks@pdx.edu?subject=[PH322 feedback] %20', test, str );
-url = ['mailto:',email];
-web(url)
+% test='Brooks_2_1.m';
+% str = '&body= Hi Kai,  %0D%0A  %0D%0A    Your program works well, except for: ';
+% email=strcat('kbrooks@pdx.edu?subject=[PH322 feedback] %20', test, str );
+% url = ['mailto:',email];
+% web(url)
