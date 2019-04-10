@@ -54,9 +54,10 @@ end
 
 figure(1)
 plot(ratio)
+
 xlim([1 loopCount]) % Starting index is 1
 ylim([1.5 2])
-xlabel('loop')
+xlabel('loop number')
 ylabel('ratio')
 
 fprintf('Break after %d loops\n', loopCount);

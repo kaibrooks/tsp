@@ -1,7 +1,7 @@
-% Title
+% Pendulum I
 % Kai brooks
-% 8 Apr 2019
-% Description
+% 10 Apr 2019
+% Plots periodic motion
 %
 %The equation of motion of a pendulum is given by:
 
@@ -36,8 +36,11 @@ stepSize = 0.01;
 % T=2pi*sqrt(l/g) % period
  
 for t=0:stepSize:10
+    
     n = n+1;    % Array index, since argument must be an integer
     a(n) = a_0 * cos(sqrt(g/l)*t);
+    b(n) = t;   % Generate an array with time values for plotting
+    
 end
 
 T=2*pi*sqrt(l/g);
@@ -45,18 +48,17 @@ T=2*pi*sqrt(l/g);
 fprintf('The period is %f',T)
 
 figure(1)
-plot(a)
-grid on
+plot(b,a)
 axis tight
 
-xt = get(gca, 'XTick'); % Adjust the y-axis size
-set(gca, 'XTick',xt, 'XTickLabel',xt/(1/stepSize)) % Divide y-axis by step
-xlabel('\it t')
-ylabel('\it a(t)')
+% xt = get(gca, 'XTick'); % Adjust the y-axis size
+% set(gca, 'XTick',xt, 'XTickLabel',xt/(1/stepSize)) % Divide y-axis by step
+% xlabel('\it t')
+% ylabel('\it a(t)')
 
 % Automated feedback script
-% test='Brooks_2_1.m';
-% str = '&body= Hi Kai,  %0D%0A  %0D%0A    Your program works well, except for: ';
-% email=strcat('kbrooks@pdx.edu?subject=[PH322 feedback] %20', test, str );
-% url = ['mailto:',email];
-% web(url)
+test='Brooks_2_1.m';
+str = '&body= Hi Kai,  %0D%0A  %0D%0A    Your program works well, except for: ';
+email=strcat('kbrooks@pdx.edu?subject=[PH322 feedback] %20', test, str );
+url = ['mailto:',email];
+web(url)
