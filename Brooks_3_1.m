@@ -1,8 +1,8 @@
 % Least Squares
 % Kai brooks
 % 17 Apr 2019
-% Description
-%
+% Takes a linear fit of data points assuming independent x and y separately
+% 
 % Generate data using y=17-3*x+rand() for 10 values of x from 1 to 9. Plot 
 % the data and the fit (y fitted to x) to this data. Assume all x's are 
 % known exactly and the uncertainty in the various y's is all the same.
@@ -46,7 +46,7 @@ fprintf('Slope: %f | Intercept: %f ', py)
 hold on
 
 figure(1)
-%plot(p)
+
 plot(x, y, 'o')
 plot(x1, y1, 'Color', '[0.4940 0.1840 0.5560]')
 plot(x2, y, 'Color', '[0.4660 0.6740 0.1880]')
@@ -55,9 +55,6 @@ xlabel('\it x')
 ylabel('\it y')
 legend('given','fit x', 'fit y')
 axis tight
-
-
-
 
 % Automated feedback script
 test='Brooks_3_1.m';
