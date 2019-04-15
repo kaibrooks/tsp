@@ -28,33 +28,40 @@ for n=1:10
     x(n) = n;   % Make a 1:n vector
 end
 
-y
-x
-
 px = polyfit(x,y,1);
+py = polyfit(y,x,1);
 
 x1 = x;
 y1 = polyval(px,x1);
 
+x2 = polyval(py,y);
+y2 = y;
+
 fprintf('Linear fit characteristics for independent x \n')
-fprintf('Slope: %f | Intercept: %f ', px)
+fprintf('Slope: %f | Intercept: %f \n', px)
+
+fprintf('Linear fit characteristics for independent y \n')
+fprintf('Slope: %f | Intercept: %f ', py)
 
 hold on
 
 figure(1)
 %plot(p)
 plot(x, y, 'o')
-plot(x1, y1)
+plot(x1, y1, 'Color', '[0.4940 0.1840 0.5560]')
+plot(x2, y, 'Color', '[0.4660 0.6740 0.1880]')
 
 xlabel('\it x')
 ylabel('\it y')
-legend('given','fit x')
+legend('given','fit x', 'fit y')
 axis tight
 
 
+
+
 % Automated feedback script
-% test='Brooks_3_1.m';
-% str = '&body= Hi Kai,  %0D%0A  %0D%0A    Your program works well, except for: ';
-% email=strcat('kbrooks@pdx.edu?subject=[PH322 feedback] %20', test, str );
-% url = ['mailto:',email];
-% web(url)
+test='Brooks_3_1.m';
+str = '&body= Hi Kai,  %0D%0A  %0D%0A    Your program works well, except for: ';
+email=strcat('kbrooks@pdx.edu?subject=[PH322 feedback] %20', test, str );
+url = ['mailto:',email];
+web(url)
