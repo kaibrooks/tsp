@@ -50,6 +50,8 @@ fprintf('The period is %f',T)
 figure(1)
 plot(b,a)
 axis tight
+xlabel('\it t')
+ylabel('\it a(t)')
 
 % xt = get(gca, 'XTick'); % Adjust the y-axis size
 % set(gca, 'XTick',xt, 'XTickLabel',xt/(1/stepSize)) % Divide y-axis by step
