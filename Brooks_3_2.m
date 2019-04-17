@@ -30,6 +30,38 @@ close all
 clear all
 format
 
+% import data from file
+
+s = load('data/erdinger_weiss.txt');
+t = s(:,1); % time
+h = s(:,2); % height
+d = s(:,3); % stdev
+
+s
+
+% write to a single array
+% [n,m] = size(s);    % get the length of the array as n
+% for i=1:n
+%     a(1,i) = t(i);
+%     a(2,i) = h(i);
+%     a(3,i) = d(i);
+% end
+
+hold on
+figure(1)
+
+plot(t,h,'o')
+
+legend
+
+%plot(p,t);
+
+% height(t)=height(0) * exp(- time/{half-life of beer foam} )
+
+
+
+
+
 
 % Automated feedback script
 % test='filename.m';
