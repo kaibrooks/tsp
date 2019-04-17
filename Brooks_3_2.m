@@ -54,6 +54,7 @@ plot(t,h,'o')
 
 legend
 
+
 %plot(p,t);
 
 % height(t)=height(0) * exp(- time/{half-life of beer foam} )
