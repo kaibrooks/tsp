@@ -29,51 +29,96 @@ r(2)=3.05;
 r(3)=3.54;
 r(4)=3.6;
 
-% preallocate memory
-x = zeros(100);
-y = zeros(100);
-z = zeros(100);
-w = zeros(100);
-
-
-% Generate x_1
-
-x = rand()
-y = x;
-z = x;
-w = x;
-
-% Calculate x_n for n = 1:100
-% x_n+1 = rx_n(1-x_n)
-
-
-for n=1:100
-    x(n+1) = r(1)*x(n)*(1-(x(n)));
-end
-
-for n=1:100
-    y(n+1) = r(2)*x(n)*(1-(x(n)));
-end
-
-for n=1:100
-    z(n+1) = r(3)*x(n)*(1-(x(n)));
-end
-
-for n=1:100
-    w(n+1) = r(4)*x(n)*(1-(x(n)));
-end
-
-hold on
+x = rand();
 
 figure(1)
 
-plot (x)
-plot (y)
-plot (z)
-plot (w)
+for n=2:100
+    x(n)=r(1)*x(n-1)*(1-x(n-1));
+end
+
+subplot(2,2,1)
+plot(1:50,x(51:100));
+
+for n=2:100
+    x(n)=r(2)*x(n-1)*(1-x(n-1));
+end
+
+subplot(2,2,2)
+plot(1:50,x(51:100));
+
+for n=2:100
+    x(n)=r(3)*x(n-1)*(1-x(n-1));
+end
+
+subplot(2,2,3)
+plot(1:50,x(51:100));
+
+for n=2:100
+    x(n)=r(4)*x(n-1)*(1-x(n-1));
+end
+
+subplot(2,2,4)
+plot(1:50,x(51:100));
+
+% Bifurcation plot
+figure(2)
+
+for n=2:100
+    x(n)=r(1)*x(n-1)*(1-x(n-1));
+end
+
+plot(r(1)*ones(50,1),x(51:100));
+hold on
+
+for n=2:100
+    x(n)=r(2)*x(n-1)*(1-x(n-1));
+end
+
+plot(r(2)*ones(50,1),x(51:100));
+
+for n=2:100
+    x(n)=r(3)*x(n-1)*(1-x(n-1));
+end
+
+plot(r(3)*ones(50,1),x(51:100));
+
+for n=2:100
+    x(n)=r(4)*x(n-1)*(1-x(n-1));
+end
+
+plot(r(4)*ones(50,1),x(51:100));
+
+
+
+
+
+% plot(r*ones(50,1),x(51:100),'.')  % Plot code
+
+
+% plot (x)
+% plot (y)
+% plot (z)
+% plot (w)
 
 legend
 axis tight
+
+
+
+%x(:) % output entire vector
+
+% Plot x_n for n=50:100 as a function of r
+
+%plot(x,r)
+
+% Automated feedback script
+% test='filename.m';
+% str = '&body= Hi Kai,  %0D%0A  %0D%0A    Your program works well, except for: ';
+% email=strcat('kbrooks@pdx.edu?subject=[PH322 feedback] %20', test, str );
+% url = ['mailto:',email];
+% web(url)
+
 
 %x(:) % output entire vector
 

@@ -37,28 +37,39 @@ t = s(:,1); % time
 h = s(:,2); % height
 d = s(:,3); % stdev
 
-s
+s;
 
 % write to a single array
-% [n,m] = size(s);    % get the length of the array as n
+[n,m] = size(s);    % get the length of the array as n
 % for i=1:n
 %     a(1,i) = t(i);
 %     a(2,i) = h(i);
 %     a(3,i) = d(i);
 % end
 
+x=[1:t(n)]; % create vector from 1:(end time in data file)
+
+p = polyfit(t,h,1);
+y = polyval(p,x);
+
+[p, stp] = lscov(t,h,d);
+
 hold on
 figure(1)
 
 plot(t,h,'o')
+plot(x,y)
+plot(x,polyval(p,x))
 
-legend
 
+xlabel('\it t')
+ylabel('\it h')
+
+legend('data','least squares fit', 'lse')
 
 %plot(p,t);
 
 % height(t)=height(0) * exp(- time/{half-life of beer foam} )
-
 
 
 
