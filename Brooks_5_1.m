@@ -28,7 +28,7 @@ url = ['mailto:',email];
 web(url)
 
 % Bisection function
-function m = bisection(f, floor, ceil, eps)
+function num = bisection(f, floor, ceil, eps)
 
 % Evaluate upper/lower bounds
 bLower = feval(f, floor);
@@ -45,38 +45,31 @@ end
 while (abs(ceil-floor) >= eps)
     n=n+1;
     
-    m = (ceil + floor)/2;   % Divide the ceiling by half to check for roots in this area
-    y = feval(f, m);
+    num = (ceil + floor)/2;   % Divide the ceiling by half to check for roots in this area
+    y = feval(f, num);
     if y == 0   % If we find a root exactly, output it
-        fprintf('Root found: x = %f \n\n', m);
+        fprintf('Root found: x = %f \n\n', num);
         return
     end
     
-    fprintf('%3i: %f \n', n-1, m);
+    fprintf('%3i: %f \n', n-1, num);
     
     
     % Update bounds
     if bLower * y > 0
-        floor = m;
+        floor = num;
         bLower = y;
     else
-        ceil = m;
+        ceil = num;
     end
     
     if n > maxEpochs
         fprintf('No estimation within specified error in %i epochs', maxEpochs);
         return
     end
-        
-
 end
 
-
 fprintf('Found after %i epochs\n', n-1);
-fprintf('Estimated x = %f\n',m)
-
-
-%f(x) = %f \n %i iterations\n', m, y, n-1);
-%fprintf(' Approximation with eps = %f \n', eps);
+fprintf('Estimated x = %f\n',num)
 
 end
