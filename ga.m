@@ -18,10 +18,13 @@ maxLoc = 100;  % maximum coordinate to generate for city locations
 verbose = 1;    % outputs things, maybe
 attempts = 100; % number of attempts to bruteforce the solution before giving up
 plotMarkerSize = 10;   % size of markers on map
-currentCity = 1; % start at the first city, n=1
 totalDist = 0;   % total distance travelled
-o_bf = 0;        % big o for bruteforce method
+o_nn = 0;        % big o for bruteforce method
 maxCpuTime = 100; % max loops various functions will use before giving up and moving on
+
+gifOutput = 1;  % outputs a gif or not
+gifWritten = 0;
+
 
 % Generate points
 cities = randi([minLoc, maxLoc],2,maxCities); % generate crooked matrix
@@ -35,7 +38,8 @@ end
 maxCities = length(cities);  % shorten everything else if we don't have enough cities
 
 
-
+startingCity = randi(maxCities);
+currentCity = startingCity;
 
 visited = zeros([maxCities],1); % boolean to mark each visited city
 visited(currentCity) = 1;
@@ -44,7 +48,9 @@ visitedOrder = zeros([maxCities],1); % vector to store the order which we visite
 visitedOrder(currentCity) = 1;
 
 % Map cities to give the user something to look at while we compute
-figure(1)
+f = figure('units','normalized','outerposition',[0 0 1 1])
+axis tight manual % this ensures that getframe() returns a consistent size
+filename = 'nn.gif';
 hold on
 grid on
 
@@ -54,28 +60,28 @@ ylim([minLoc maxLoc])
 % Attempt bruteforce distance
 % Find distance between all cities from current location
 
-
+% Plot cities
 for i=1:maxCities
-    if i == 1
+    if i == startingCity
         plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotMarkerSize)
     else
-        plot(cities(i,1),cities(i,2),'kd','MarkerSize',plotMarkerSize)
-    end
-    
+        plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize)
+    end 
 end
-
 txt = '    \leftarrow Start';
-text(cities(1,1),cities(1,2),txt)
+text(cities(startingCity,1),cities(startingCity,2),txt)
 
-
+% Nearest Neighbor Algorithm
 for j = 2:maxCities
+    
+    o_nn = o_nn + 1;
     
     ccLoc = [cities(currentCity,1), cities(currentCity,2)]; % coords of current city
     
     minDist = maxLoc^2;   % starting distance, make maximum possible
     
     for i = 1:maxCities
-        o_bf = o_bf + 1;
+        o_nn = o_nn + 1;
         
         if visited(i) == 1, continue, end % skip cities we've visited
         
@@ -85,6 +91,27 @@ for j = 2:maxCities
         checkDistance = [a;b]; % select two points
         
         distance = pdist(checkDistance,'euclidean');    % find distance between them
+        
+        % Draw decision lines
+        if gifOutput == 1
+            % Draw 'decision' line
+            x = [cities(currentCity,1), cities(i,1)];
+            y = [cities(currentCity,2), cities(i,2)];
+            plot(x,y,'g:','LineWidth',plotMarkerSize/8)
+            
+            
+            drawnow
+            % Capture the plot as an image
+            title("" + o_nn)
+            if  gifWritten == 0
+                gifWritten = 1;
+                gif('myfile.gif','DelayTime',0.01,'LoopCount',1,'frame',gcf)
+            else
+                gifWritten = 1;
+                gif
+            end
+        end
+        
         
         if distance < minDist
             minDist = distance;
@@ -97,7 +124,7 @@ for j = 2:maxCities
     minDist;
     nextCity;
     
-    fprintf('Moving to city %i with a distance of %.2f \n',nextCity,minDist)
+    %fprintf('Moving to city %i with a distance of %.2f \n',nextCity,minDist)
     
     % Plot line to shortest next, vector 1 is both x's, 2 is both y's
     x = [cities(currentCity,1), cities(nextCity,1)];
@@ -113,11 +140,13 @@ for j = 2:maxCities
     visitedOrder(j) = nextCity;
     totalDist = totalDist + minDist;
     
+    % Break if we've visited everything
+    if sum(visited) == maxCities, break, end
+    
 end
 
 fprintf('-- Travelling done! -- \n')
 
-visitedOrder
+%visitedOrder
 totalDist
-o_bf
-
+o_nn
