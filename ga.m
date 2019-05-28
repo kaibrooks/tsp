@@ -25,6 +25,9 @@ maxCpuTime = 100; % max loops various functions will use before giving up and mo
 gifOutput = 1;  % outputs a gif or not
 gifWritten = 0;
 
+nn = 1;         % nearest-neighbor algorithm
+bf = 0;         % bruteforce algorithm
+
 
 % Generate points
 cities = randi([minLoc, maxLoc],2,maxCities); % generate crooked matrix
@@ -66,84 +69,105 @@ for i=1:maxCities
         plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotMarkerSize)
     else
         plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize)
-    end 
+    end
 end
 txt = '    \leftarrow Start';
 text(cities(startingCity,1),cities(startingCity,2),txt)
 
 % Nearest Neighbor Algorithm
-for j = 2:maxCities
-    
-    o_nn = o_nn + 1;
-    
-    ccLoc = [cities(currentCity,1), cities(currentCity,2)]; % coords of current city
-    
-    minDist = maxLoc^2;   % starting distance, make maximum possible
-    
-    for i = 1:maxCities
+if nn == 1
+    for j = 2:maxCities
+        
         o_nn = o_nn + 1;
         
-        if visited(i) == 1, continue, end % skip cities we've visited
+        ccLoc = [cities(currentCity,1), cities(currentCity,2)]; % coords of current city
         
-        a = ccLoc;  % current city coordinates
-        b = [cities(i,1),cities(i,2)];
+        minDist = maxLoc^2;   % starting distance, make maximum possible
         
-        checkDistance = [a;b]; % select two points
-        
-        distance = pdist(checkDistance,'euclidean');    % find distance between them
-        
-        % Draw decision lines
-        if gifOutput == 1
-            % Draw 'decision' line
-            x = [cities(currentCity,1), cities(i,1)];
-            y = [cities(currentCity,2), cities(i,2)];
-            plot(x,y,'g:','LineWidth',plotMarkerSize/8)
+        for i = 1:maxCities
+            o_nn = o_nn + 1;
+            
+            if visited(i) == 1, continue, end % skip cities we've visited
+            
+            a = ccLoc;  % current city coordinates
+            b = [cities(i,1),cities(i,2)];
+            
+            checkDistance = [a;b]; % select two points
+            
+            distance = pdist(checkDistance,'euclidean');    % find distance between them
+            
+            % Draw decision lines
+            if gifOutput == 1
+                % Draw 'decision' line
+                x = [cities(currentCity,1), cities(i,1)];
+                y = [cities(currentCity,2), cities(i,2)];
+                plot(x,y,'g:','LineWidth',plotMarkerSize/8)
+                
+                
+                drawnow
+                % Capture the plot as an image
+                title("" + o_nn)
+                if  gifWritten == 0
+                    gifWritten = 1;
+                    gif('nn.gif','DelayTime',0.01,'LoopCount',1,'frame',gcf)
+                else
+                    gifWritten = 1;
+                    gif
+                end
+            end
             
             
-            drawnow
-            % Capture the plot as an image
-            title("" + o_nn)
-            if  gifWritten == 0
-                gifWritten = 1;
-                gif('myfile.gif','DelayTime',0.01,'LoopCount',1,'frame',gcf)
-            else
-                gifWritten = 1;
-                gif
+            if distance < minDist
+                minDist = distance;
+                nextCity = i;
+                nextLoc = [cities(i,1),cities(i,2)];
             end
         end
         
+        %  what we found for the next move
+        minDist;
+        nextCity;
         
-        if distance < minDist
-            minDist = distance;
-            nextCity = i;
-            nextLoc = [cities(i,1),cities(i,2)];
-        end
+        %fprintf('Moving to city %i with a distance of %.2f \n',nextCity,minDist)
+        
+        % Plot line to shortest next, vector 1 is both x's, 2 is both y's
+        x = [cities(currentCity,1), cities(nextCity,1)];
+        y = [cities(currentCity,2), cities(nextCity,2)];
+        plot(x,y,'r--','LineWidth',plotMarkerSize/8)
+        
+        %txt = 'Next \rightarrow  ';
+        %text(cities(nextCity,1),cities(nextCity,2),txt,'HorizontalAlignment','right')
+        
+        % Update for next loop
+        currentCity = nextCity;
+        visited(nextCity) = 1;
+        visitedOrder(j) = nextCity;
+        totalDist = totalDist + minDist;
+        
+        % Break if we've visited everything
+        if sum(visited) == maxCities, break, end
+        
     end
     
-    %  what we found for the next move
-    minDist;
-    nextCity;
+    % Complete the loop
+    a = ccLoc;  % current city coordinates
+    b = [cities(startingCity,1),cities(startingCity,2)];
     
-    %fprintf('Moving to city %i with a distance of %.2f \n',nextCity,minDist)
+    checkDistance = [a;b]; % select two points
+    distance = pdist(checkDistance,'euclidean');
+    totalDist = totalDist + distance; % Update total distance once more
     
-    % Plot line to shortest next, vector 1 is both x's, 2 is both y's
-    x = [cities(currentCity,1), cities(nextCity,1)];
-    y = [cities(currentCity,2), cities(nextCity,2)];
+    x = [cities(currentCity,1), cities(startingCity,1)];
+    y = [cities(currentCity,2), cities(startingCity,2)];
     plot(x,y,'r--','LineWidth',plotMarkerSize/8)
     
-    %txt = 'Next \rightarrow  ';
-    %text(cities(nextCity,1),cities(nextCity,2),txt,'HorizontalAlignment','right')
-    
-    % Update for next loop
-    currentCity = nextCity;
-    visited(nextCity) = 1;
-    visitedOrder(j) = nextCity;
-    totalDist = totalDist + minDist;
-    
-    % Break if we've visited everything
-    if sum(visited) == maxCities, break, end
-    
+    drawnow
+    gif
+
 end
+
+
+
 
 fprintf('-- Travelling done! -- \n')
 
