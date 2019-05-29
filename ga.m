@@ -53,22 +53,32 @@ visitedOrder = zeros([maxCities],1); % vector to store the order which we visite
 visitedOrder(currentCity) = 1;
 
 % Create bruteforce path matrix: o(n!)
-arr = [1:maxCities];
+arr = [2:maxCities];
 bfVisitOrder = perms(arr);
 fprintf('Bruteforce computation will take %i iterations\n',length(bfVisitOrder))
 bfVisitOrder = rot90(bfVisitOrder); % flip it to make indexing easier
+
+arr = ones(1,length(bfVisitOrder));
+
+bfVisitOrder = [arr;bfVisitOrder];
+
 
 % Add original city back onto end
 for i = 1:length(bfVisitOrder)
     %bfVisitOrder(maxCities+1,i) = bfVisitOrder(1,i);
 end
 
-ind = length(bfVisitOrder);
-for i = 1:ind
-    if bfVisitOrder(i) ~= 1;
-        bfVisitOrder(:,i) = [];
-    end
-end
+% Delete entries that don't begin with city 1
+% for i = 1:length(bfVisitOrder)
+%     fprintf('Checking %i\n',i)
+%     k = length(bfVisitOrder);
+%     if bfVisitOrder(i) ~= 1;
+%         fprintf('Trying to delete %i\n',i)
+%         bfVisitOrder(:,i) = [];
+%         fprintf('Deleted %i\n',i)
+%         
+%     end
+% end
 
 % Map cities to give the user something to look at while we compute
 f = figure('units','normalized','outerposition',[0 0 1 1]);
