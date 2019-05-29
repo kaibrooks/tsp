@@ -13,7 +13,7 @@ format
 
 rng('shuffle')
 
-maxCities = 3;  % number of cities to visit
+maxCities = 5;  % number of cities to visit
 minLoc = 1;  % minimum coordinate to generate for city locations
 maxLoc = 100;  % maximum coordinate to generate for city locations
 verbose = 1;    % outputs things, maybe
@@ -27,17 +27,17 @@ maxCpuTime = 100; % max loops various functions will use before giving up and mo
 gifOutput = 1;  % outputs a gif or not
 gifWritten = 0;
 
-nn = 0;         % nearest-neighbor algorithm
+nn = 1;         % nearest-neighbor algorithm
 bf = 1;         % bruteforce algorithm
 
 
 % Generate points
-cities = randi([minLoc, maxLoc],2,maxCities); % generate crooked matrix
+cities = randi([minLoc, maxLoc],2,maxCities); % generate matrix
 cities = rot90(cities);  % rotate to form cities(x1,y1) for each point
 cities = unique(cities,'rows'); % remove duplicate entries
 
 if (length(cities) ~= maxCities)
-    %fprintf('*** Generated duplicate city coordinates, pruning %i entries.\n*** New maxCities = %i \n', maxCities - length(cities), length(cities))
+    fprintf('*** Generated duplicate city coordinates, pruning %i entries.\n*** New maxCities = %i \n', maxCities - length(cities), length(cities))
 end
 
 maxCities = length(cities);  % shorten everything else if we don't have enough cities
@@ -55,34 +55,20 @@ visitedOrder(currentCity) = 1;
 % Create bruteforce path matrix: o(n!)
 arr = [2:maxCities];
 bfVisitOrder = perms(arr);
-fprintf('Bruteforce computation will take %i iterations\n',length(bfVisitOrder))
 bfVisitOrder = rot90(bfVisitOrder); % flip it to make indexing easier
 
-arr = ones(1,length(bfVisitOrder));
+arr = ones(1,length(bfVisitOrder)); % create array of 1's
+bfVisitOrder = [arr;bfVisitOrder];  % append to the beginning
+fprintf('Bruteforce computation will take %i iterations\n',length(bfVisitOrder))
 
-bfVisitOrder = [arr;bfVisitOrder];
 
-
-% Add original city back onto end
+% Add original city back onto end to complete the loop
 for i = 1:length(bfVisitOrder)
-    %bfVisitOrder(maxCities+1,i) = bfVisitOrder(1,i);
+    bfVisitOrder(maxCities+1,i) = bfVisitOrder(1,i);
 end
 
-% Delete entries that don't begin with city 1
-% for i = 1:length(bfVisitOrder)
-%     fprintf('Checking %i\n',i)
-%     k = length(bfVisitOrder);
-%     if bfVisitOrder(i) ~= 1;
-%         fprintf('Trying to delete %i\n',i)
-%         bfVisitOrder(:,i) = [];
-%         fprintf('Deleted %i\n',i)
-%         
-%     end
-% end
-
-% Map cities to give the user something to look at while we compute
+% Create figure
 f = figure('units','normalized','outerposition',[0 0 1 1]);
-%figure
 axis tight manual % this ensures that getframe() returns a consistent size
 filename = 'nn.gif';
 hold on
@@ -123,8 +109,9 @@ if bf == 1
         for i=1:maxCities %+1 to account for return to start
             o_bf = o_bf + 1;
             
-            a = [cities(bfVisitOrder(i,j),1),cities(bfVisitOrder(i),2)];
-            b = [cities(bfVisitOrder(i+1),1),cities(bfVisitOrder(i+1),2)];
+            
+            a = [cities(bfVisitOrder(i,j),1),cities(bfVisitOrder(i,j),2)];
+            b = [cities(bfVisitOrder(i+1,j),1),cities(bfVisitOrder(i+1,j),2)];
             
             checkDistance = [a;b]; % select two points
             distance = pdist(checkDistance,'euclidean');   % find distance between them
@@ -143,7 +130,7 @@ if bf == 1
     
     % Find min value
     [bfMinDist,bfMinIndex] = min(bfDistances)
-    bfVisitOrder(:,bfMinIndex)
+    bruteforce_path_taken = bfVisitOrder(:,bfMinIndex)
     
     %min(bfDist)
     %bfDist(j)
@@ -157,6 +144,7 @@ if bf == 1
         
         a = [cities(bfVisitOrder(i,bfMinIndex),1), cities(bfVisitOrder(i,bfMinIndex),2)];
         b = [cities(bfVisitOrder(i+1,bfMinIndex),1), cities(bfVisitOrder(i+1,bfMinIndex),2)];
+        
         x = [a(1), b(1)];
         y = [a(2), b(2)];
         plot(x,y,'b--','LineWidth',plotMarkerSize/8)
@@ -250,6 +238,7 @@ if nn == 1
         currentCity = nextCity;
         visited(nextCity) = 1;
         visitedOrder(j) = nextCity;
+        minDist; % verbose
         totalDist = totalDist + minDist;
         
         % Break if we've visited everything
@@ -258,12 +247,14 @@ if nn == 1
     end
     
     % Complete the loop
-    a = ccLoc;  % current city coordinates
+
+    a = [cities(currentCity,1), cities(currentCity,2)];  % current city coordinates
     b = [cities(startingCity,1),cities(startingCity,2)];
     
     checkDistance = [a;b]; % select two points
     distance = pdist(checkDistance,'euclidean');
-    totalDist = totalDist + distance; % Update total distance once more
+    minDist
+    totalDist = totalDist + distance % Update total distance once more
     
     x = [cities(currentCity,1), cities(startingCity,1)];
     y = [cities(currentCity,2), cities(startingCity,2)];
