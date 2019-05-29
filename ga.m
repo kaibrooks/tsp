@@ -13,7 +13,7 @@ format
 
 rng('shuffle')
 
-maxCities = 5;  % number of cities to visit
+maxCities = 9;  % number of cities to visit
 minLoc = 1;  % minimum coordinate to generate for city locations
 maxLoc = 100;  % maximum coordinate to generate for city locations
 verbose = 1;    % outputs things, maybe
@@ -59,13 +59,15 @@ bfVisitOrder = rot90(bfVisitOrder); % flip it to make indexing easier
 
 arr = ones(1,length(bfVisitOrder)); % create array of 1's
 bfVisitOrder = [arr;bfVisitOrder];  % append to the beginning
-fprintf('Bruteforce computation will take %i iterations\n',length(bfVisitOrder))
-
 
 % Add original city back onto end to complete the loop
 for i = 1:length(bfVisitOrder)
     bfVisitOrder(maxCities+1,i) = bfVisitOrder(1,i);
 end
+
+[x,y] = size(bfVisitOrder)  % get total size of matrix
+bf_omax = x*y; 
+
 
 % Create figure
 f = figure('units','normalized','outerposition',[0 0 1 1]);
@@ -73,6 +75,8 @@ axis tight manual % this ensures that getframe() returns a consistent size
 filename = 'nn.gif';
 hold on
 grid on
+
+
 
 xlim([minLoc maxLoc])
 ylim([minLoc maxLoc])
@@ -125,6 +129,10 @@ if bf == 1
         
         bfDistances(j) = totalDist; % store the total path length      
         totalDist = 0;              % reset for the next run
+       
+        clc
+        fprintf('O(n!) computation will take %i iterations\n',bf_omax)
+        fprintf('Computing optimal route... %i%% \n', floor((o_bf / bf_omax) * 100))
         
     end
     
@@ -266,16 +274,14 @@ if nn == 1
 end
 
 
-
-
 fprintf('-- Travelling done! -- \n')
 
 o_bf
 bruteforce_distance = bfDistances(bfMinIndex)
 bruteforce_minimum_vec = min(bfDistances)
 
-
 nn_distance = totalDist
 o_nn
 
+fprintf('NN algorithm path is %.2f times longer and %.2f times faster.\n',nn_distance/bruteforce_distance, o_bf/o_nn)
 
