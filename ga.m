@@ -12,21 +12,22 @@ format
 
 rng('shuffle')
 
-maxCities = 10;  % number of cities to visit
+maxCities = 8;  % number of cities to visit
 minLoc = 1;  % minimum coordinate to generate for city locations
 maxLoc = 100;  % maximum coordinate to generate for city locations
 verbose = 1;    % outputs things, maybe
 attempts = 100; % number of attempts to bruteforce the solution before giving up
 plotMarkerSize = 10;   % size of markers on map
 totalDist = 0;   % total distance travelled
-o_nn = 0;        % big o for bruteforce method
+o_nn = 0;        % big o for nearest neighbor method
+o_bf = 0;        % big o for bruteforce method
 maxCpuTime = 100; % max loops various functions will use before giving up and moving on
 
-gifOutput = 0;  % outputs a gif or not
+gifOutput = 1;  % outputs a gif or not
 gifWritten = 0;
 
 nn = 1;         % nearest-neighbor algorithm
-bf = 0;         % bruteforce algorithm
+bf = 1;         % bruteforce algorithm
 
 
 % Generate points
@@ -59,6 +60,7 @@ bfVisitOrder = rot90(bfVisitOrder); % flip it to make indexing easier
 
 % Map cities to give the user something to look at while we compute
 f = figure('units','normalized','outerposition',[0 0 1 1])
+%figure
 axis tight manual % this ensures that getframe() returns a consistent size
 filename = 'nn.gif';
 hold on
@@ -80,6 +82,62 @@ for i=1:maxCities
 end
 txt = '    \leftarrow Start';
 text(cities(startingCity,1),cities(startingCity,2),txt)
+
+% Bruteforce Algorithm
+%bfVisitOrder
+%cities
+if bf == 1
+    minDist = maxLoc^2;  % Starting minimum distance
+    % while sum(visited) < maxCities
+    
+    for j=1:length(bfVisitOrder)
+        for i=1:maxCities
+            o_bf = o_bf + 1;
+            
+            a = [cities(bfVisitOrder(i,j),1),cities(bfVisitOrder(i),2)];
+            b = [cities(bfVisitOrder(i+1),1),cities(bfVisitOrder(i+1),2)];
+            
+            checkDistance = [a;b]; % select two points
+            
+            distance = pdist(checkDistance,'euclidean');   % find distance between them
+            totalDist = totalDist + distance;
+        end
+        bfDist(j) = totalDist;
+        
+        if totalDist < minDist
+            minDist = totalDist;
+            bfShortest = j;
+        end
+        
+        totalDist = 0;
+    end
+    
+    %bfDist
+    bfShortest
+    bfDist(bfShortest)
+    
+    % Plot it
+    for i=1:maxCities-1
+        a = [cities(bfVisitOrder(i,bfShortest),1), cities(bfVisitOrder(i,bfShortest),2)]
+        b = [cities(bfVisitOrder(i+1,bfShortest),1), cities(bfVisitOrder(i+1,bfShortest),2)]
+        x = [a(1), b(1)];
+        y = [a(2), b(2)];
+        plot(x,y,'b--','LineWidth',plotMarkerSize/8)
+   
+    %bfVisitOrder(i:4,bfShortest) gives path
+   
+    end
+    % Close the end to form the loop
+    a = [cities(bfVisitOrder(maxCities,bfShortest),1), cities(bfVisitOrder(maxCities,bfShortest),2)]
+    b = [cities(bfVisitOrder(1,bfShortest),1), cities(bfVisitOrder(1,bfShortest),2)]
+    x = [a(1), b(1)];
+    y = [a(2), b(2)];
+    plot(x,y,'b--','LineWidth',plotMarkerSize/8)
+end
+
+% Reset variables
+totalDist = 0;
+minDist = 0;
 
 % Nearest Neighbor Algorithm
 if nn == 1
@@ -170,7 +228,7 @@ if nn == 1
     
     drawnow
     gif
-
+    
 end
 
 
@@ -179,5 +237,5 @@ end
 fprintf('-- Travelling done! -- \n')
 
 %visitedOrder
-totalDist
-o_nn
+%totalDist
+%o_nn
