@@ -5,6 +5,7 @@
 %
 % Solves the travelling salesman problem using a genetic algorithm
 
+% Init
 clc
 close all
 clear all
@@ -12,7 +13,7 @@ format
 
 rng('shuffle')
 
-maxCities = 8;  % number of cities to visit
+maxCities = 3;  % number of cities to visit
 minLoc = 1;  % minimum coordinate to generate for city locations
 maxLoc = 100;  % maximum coordinate to generate for city locations
 verbose = 1;    % outputs things, maybe
@@ -26,7 +27,7 @@ maxCpuTime = 100; % max loops various functions will use before giving up and mo
 gifOutput = 1;  % outputs a gif or not
 gifWritten = 0;
 
-nn = 1;         % nearest-neighbor algorithm
+nn = 0;         % nearest-neighbor algorithm
 bf = 1;         % bruteforce algorithm
 
 
@@ -36,13 +37,13 @@ cities = rot90(cities);  % rotate to form cities(x1,y1) for each point
 cities = unique(cities,'rows'); % remove duplicate entries
 
 if (length(cities) ~= maxCities)
-    fprintf('*** Generated duplicate city coordinates, pruning %i entries.\n*** New maxCities = %i \n', maxCities - length(cities), length(cities))
+    %fprintf('*** Generated duplicate city coordinates, pruning %i entries.\n*** New maxCities = %i \n', maxCities - length(cities), length(cities))
 end
 
 maxCities = length(cities);  % shorten everything else if we don't have enough cities
 
 
-startingCity = randi(maxCities);
+startingCity = 1; %randi(maxCities);
 currentCity = startingCity;
 
 visited = zeros([maxCities],1); % boolean to mark each visited city
@@ -57,9 +58,20 @@ bfVisitOrder = perms(arr);
 fprintf('Bruteforce computation will take %i iterations\n',length(bfVisitOrder))
 bfVisitOrder = rot90(bfVisitOrder); % flip it to make indexing easier
 
+% Add original city back onto end
+for i = 1:length(bfVisitOrder)
+    %bfVisitOrder(maxCities+1,i) = bfVisitOrder(1,i);
+end
+
+ind = length(bfVisitOrder);
+for i = 1:ind
+    if bfVisitOrder(i) ~= 1;
+        bfVisitOrder(:,i) = [];
+    end
+end
 
 % Map cities to give the user something to look at while we compute
-f = figure('units','normalized','outerposition',[0 0 1 1])
+f = figure('units','normalized','outerposition',[0 0 1 1]);
 %figure
 axis tight manual % this ensures that getframe() returns a consistent size
 filename = 'nn.gif';
@@ -69,20 +81,25 @@ grid on
 xlim([minLoc maxLoc])
 ylim([minLoc maxLoc])
 
-% Attempt bruteforce distance
-% Find distance between all cities from current location
+txt = '    \leftarrow Start';
 
 % Plot cities
 for i=1:maxCities
+
     if i == startingCity
         plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotMarkerSize)
+
     else
         plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize)
     end
+    text(cities(i,1),cities(i,2),sprintf('   %i', i))
+
 end
+        
 txt = '    \leftarrow Start';
 text(cities(startingCity,1),cities(startingCity,2),txt)
 
+% Algorithms
 % Bruteforce Algorithm
 %bfVisitOrder
 %cities
@@ -91,48 +108,54 @@ if bf == 1
     % while sum(visited) < maxCities
     
     for j=1:length(bfVisitOrder)
-        for i=1:maxCities
+        o_bf = o_bf + 1;
+        
+        for i=1:maxCities %+1 to account for return to start
             o_bf = o_bf + 1;
             
             a = [cities(bfVisitOrder(i,j),1),cities(bfVisitOrder(i),2)];
             b = [cities(bfVisitOrder(i+1),1),cities(bfVisitOrder(i+1),2)];
             
             checkDistance = [a;b]; % select two points
-            
             distance = pdist(checkDistance,'euclidean');   % find distance between them
+            %distance = floor(distance); % truncate
             totalDist = totalDist + distance;
-        end
-        bfDist(j) = totalDist;
-        
-        if totalDist < minDist
-            minDist = totalDist;
-            bfShortest = j;
+            
+            bfSegmentDistances(i,j) = distance; 
+            
+            
         end
         
-        totalDist = 0;
+        bfDistances(j) = totalDist; % store the total path length      
+        totalDist = 0;              % reset for the next run
+        
     end
     
+    % Find min value
+    [bfMinDist,bfMinIndex] = min(bfDistances)
+    bfVisitOrder(:,bfMinIndex)
+    
+    %min(bfDist)
+    %bfDist(j)
+    
     %bfDist
-    bfShortest
-    bfDist(bfShortest)
+%     bfMinIndex
+%     bfDistances(bfMinIndex)
     
     % Plot it
-    for i=1:maxCities-1
-        a = [cities(bfVisitOrder(i,bfShortest),1), cities(bfVisitOrder(i,bfShortest),2)]
-        b = [cities(bfVisitOrder(i+1,bfShortest),1), cities(bfVisitOrder(i+1,bfShortest),2)]
+    for i=1:maxCities
+        
+        a = [cities(bfVisitOrder(i,bfMinIndex),1), cities(bfVisitOrder(i,bfMinIndex),2)];
+        b = [cities(bfVisitOrder(i+1,bfMinIndex),1), cities(bfVisitOrder(i+1,bfMinIndex),2)];
         x = [a(1), b(1)];
         y = [a(2), b(2)];
         plot(x,y,'b--','LineWidth',plotMarkerSize/8)
-   
+        
+        
     %bfVisitOrder(i:4,bfShortest) gives path
    
     end
-    % Close the end to form the loop
-    a = [cities(bfVisitOrder(maxCities,bfShortest),1), cities(bfVisitOrder(maxCities,bfShortest),2)]
-    b = [cities(bfVisitOrder(1,bfShortest),1), cities(bfVisitOrder(1,bfShortest),2)]
-    x = [a(1), b(1)];
-    y = [a(2), b(2)];
-    plot(x,y,'b--','LineWidth',plotMarkerSize/8)
+   
 end
 
 % Reset variables
@@ -180,14 +203,24 @@ if nn == 1
                     gif
                 end
             end
-            
-            
+
             if distance < minDist
                 minDist = distance;
                 nextCity = i;
                 nextLoc = [cities(i,1),cities(i,2)];
             end
+           
+            
         end
+        
+        if j == maxCities+1
+                a = [cities(maxCities,1),maxCities(2)];  % current city coordinates
+                b = [cities(1,1),cities(1,2)];
+                
+                checkDistance = [a;b]; % select two points
+                distance = pdist(checkDistance,'euclidean');   % find distance between them
+                totalDist = totalDist + distance;
+            end
         
         %  what we found for the next move
         minDist;
@@ -236,6 +269,12 @@ end
 
 fprintf('-- Travelling done! -- \n')
 
-%visitedOrder
-%totalDist
-%o_nn
+o_bf
+bruteforce_distance = bfDistances(bfMinIndex)
+bruteforce_minimum_vec = min(bfDistances)
+
+
+nn_distance = totalDist
+o_nn
+
+
