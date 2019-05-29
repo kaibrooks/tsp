@@ -22,7 +22,7 @@ totalDist = 0;   % total distance travelled
 o_nn = 0;        % big o for bruteforce method
 maxCpuTime = 100; % max loops various functions will use before giving up and moving on
 
-gifOutput = 1;  % outputs a gif or not
+gifOutput = 0;  % outputs a gif or not
 gifWritten = 0;
 
 nn = 1;         % nearest-neighbor algorithm
@@ -49,6 +49,13 @@ visited(currentCity) = 1;
 
 visitedOrder = zeros([maxCities],1); % vector to store the order which we visited each city
 visitedOrder(currentCity) = 1;
+
+% Create bruteforce path matrix: o(n!)
+arr = [1:maxCities];
+bfVisitOrder = perms(arr);
+fprintf('Bruteforce computation will take %i iterations\n',length(bfVisitOrder))
+bfVisitOrder = rot90(bfVisitOrder); % flip it to make indexing easier
+
 
 % Map cities to give the user something to look at while we compute
 f = figure('units','normalized','outerposition',[0 0 1 1])
