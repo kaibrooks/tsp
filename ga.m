@@ -1,9 +1,12 @@
 % TSP GA
-% Kai brooks
+% Kai Brooks
 % Jun 2019
 % Description
 %
-% Solves the travelling salesman problem using a genetic algorithm
+% Solves the travelling salesman problem
+% Program first solves using the 'bruteforce' method and plots it in blue
+% Program then uses nn algorithm and solves it in red
+%
 
 % Init
 clc
@@ -13,23 +16,36 @@ format
 
 rng('shuffle')
 
-maxCities = 9;  % number of cities to visit
-minLoc = 1;  % minimum coordinate to generate for city locations
-maxLoc = 100;  % maximum coordinate to generate for city locations
-verbose = 1;    % outputs things, maybe
-attempts = 100; % number of attempts to bruteforce the solution before giving up
-plotMarkerSize = 10;   % size of markers on map
-totalDist = 0;   % total distance travelled
-o_nn = 0;        % big o for nearest neighbor method
-o_bf = 0;        % big o for bruteforce method
-maxCpuTime = 100; % max loops various functions will use before giving up and moving on
+% --- Main options --------------------------------------------------------
 
-gifOutput = 1;  % outputs a gif or not
-gifWritten = 0;
+maxCities = 9;          % (default 9) number of cities to visit, this is the 'n'
+                        % decrease this if it hurts the hardware
+gifOutput = 1;          % enables gif output and generation, slows rendering                        
+filename = 'nn.gif';
+% Algorithm enables
+bf = 1;                 % bruteforce algorithm
+nn = 1;                 % nearest-neighbor algorithm
+    
+% --- Advanced options and generator settings -----------------------------
 
-nn = 1;         % nearest-neighbor algorithm
-bf = 1;         % bruteforce algorithm
+bfTickSize = 10000;     % (default 10000) tick size for timing BF algorithm. Higher numbers = more accuracy, slower to display estimate
+minLoc = 1;             % (default 1) minimum coordinate to generate for city locations
+maxLoc = 100;           % (default 100) maximum coordinate to generate for city locations
+plotMarkerSize = 15;    % (default 10) size of markers on map
 
+verbose = 1;            % outputs things, maybe
+attempts = 100;         % number of attempts to bruteforce the solution before giving up
+
+% --- Declare other variables (do not modify) -----------------------------
+
+totalDist = 0;          % total distance travelled
+o_nn = 0;               % big o for nearest neighbor method
+o_bf = 0;               % big o for bruteforce method
+maxCpuTime = 100;       % max loops various functions will use before giving up and moving on
+gifWritten = 0;         % one-time check for gif creation
+
+
+% --- Program start -------------------------------------------------------
 
 % Generate points
 cities = randi([minLoc, maxLoc],2,maxCities); % generate matrix
@@ -43,7 +59,7 @@ end
 maxCities = length(cities);  % shorten everything else if we don't have enough cities
 
 
-startingCity = 1; %randi(maxCities);
+startingCity = randi(maxCities);
 currentCity = startingCity;
 
 visited = zeros([maxCities],1); % boolean to mark each visited city
@@ -65,14 +81,14 @@ for i = 1:length(bfVisitOrder)
     bfVisitOrder(maxCities+1,i) = bfVisitOrder(1,i);
 end
 
-[x,y] = size(bfVisitOrder)  % get total size of matrix
-bf_omax = x*y; 
+[x,y] = size(bfVisitOrder);  % get total size of matrix
+bf_omax = x*y;
 
 
 % Create figure
 f = figure('units','normalized','outerposition',[0 0 1 1]);
 axis tight manual % this ensures that getframe() returns a consistent size
-filename = 'nn.gif';
+
 hold on
 grid on
 
@@ -85,17 +101,17 @@ txt = '    \leftarrow Start';
 
 % Plot cities
 for i=1:maxCities
-
+    
     if i == startingCity
         plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotMarkerSize)
-
+        
     else
         plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize)
     end
     text(cities(i,1),cities(i,2),sprintf('   %i', i))
-
+    
 end
-        
+
 txt = '    \leftarrow Start';
 text(cities(startingCity,1),cities(startingCity,2),txt)
 
@@ -103,6 +119,8 @@ text(cities(startingCity,1),cities(startingCity,2),txt)
 % Bruteforce Algorithm
 %bfVisitOrder
 %cities
+
+bfEstimatedTime = 0;
 if bf == 1
     minDist = maxLoc^2;  % Starting minimum distance
     % while sum(visited) < maxCities
@@ -110,9 +128,10 @@ if bf == 1
     for j=1:length(bfVisitOrder)
         o_bf = o_bf + 1;
         
+        if j==1,tic,end
+        
         for i=1:maxCities %+1 to account for return to start
             o_bf = o_bf + 1;
-            
             
             a = [cities(bfVisitOrder(i,j),1),cities(bfVisitOrder(i,j),2)];
             b = [cities(bfVisitOrder(i+1,j),1),cities(bfVisitOrder(i+1,j),2)];
@@ -122,30 +141,43 @@ if bf == 1
             %distance = floor(distance); % truncate
             totalDist = totalDist + distance;
             
-            bfSegmentDistances(i,j) = distance; 
-            
-            
+            bfSegmentDistances(i,j) = distance;
+               
         end
         
-        bfDistances(j) = totalDist; % store the total path length      
+        if j==bfTickSize
+            timing = toc;
+            bfEstimatedTime = timing*((length(bfVisitOrder)-bfTickSize)/bfTickSize) % timing*((length(bfVisitOrder)-bfTickSize)/bfTickSize) for 'time remaining as of this timing'
+            bfTimeTicks = length(bfVisitOrder)/bfTickSize;
+        end
+        
+        bfDistances(j) = totalDist; % store the total path length
         totalDist = 0;              % reset for the next run
-       
+        
+        % Output running information
         clc
-        fprintf('O(n!) computation will take %i iterations\n',bf_omax)
-        fprintf('Computing optimal route... %i%% \n', floor((o_bf / bf_omax) * 100))
+        fprintf('Starting BF for n=%i, O(n!)=%i \n',maxCities, bf_omax)
+        if length(bfVisitOrder) > bfTickSize % only display if enough data to estimate
+            if bfEstimatedTime > 0
+                fprintf('Estimated runtime: %.2f seconds\n',bfEstimatedTime)
+            else
+                fprintf('Estimated runtime: (Sampling %i more times..)\n',bfTickSize-j)
+            end
+        end
+        fprintf('Computing optimal route... %.2f%% \n', (o_bf / bf_omax) * 100)
         
     end
     
     % Find min value
-    [bfMinDist,bfMinIndex] = min(bfDistances)
-    bruteforce_path_taken = bfVisitOrder(:,bfMinIndex)
+    [bfMinDist,bfMinIndex] = min(bfDistances);
+    %bruteforce_path_taken = bfVisitOrder(:,bfMinIndex)
     
     %min(bfDist)
     %bfDist(j)
     
     %bfDist
-%     bfMinIndex
-%     bfDistances(bfMinIndex)
+    %     bfMinIndex
+    %     bfDistances(bfMinIndex)
     
     % Plot it
     for i=1:maxCities
@@ -158,10 +190,11 @@ if bf == 1
         plot(x,y,'b--','LineWidth',plotMarkerSize/8)
         
         
-    %bfVisitOrder(i:4,bfShortest) gives path
-   
+        %bfVisitOrder(i:4,bfShortest) gives path
+        
     end
-   
+    
+    %fprintf('BF method complete in %.2f seconds\n', toc)
 end
 
 % Reset variables
@@ -209,24 +242,24 @@ if nn == 1
                     gif
                 end
             end
-
+            
             if distance < minDist
                 minDist = distance;
                 nextCity = i;
                 nextLoc = [cities(i,1),cities(i,2)];
             end
-           
+            
             
         end
         
         if j == maxCities+1
-                a = [cities(maxCities,1),maxCities(2)];  % current city coordinates
-                b = [cities(1,1),cities(1,2)];
-                
-                checkDistance = [a;b]; % select two points
-                distance = pdist(checkDistance,'euclidean');   % find distance between them
-                totalDist = totalDist + distance;
-            end
+            a = [cities(maxCities,1),maxCities(2)];  % current city coordinates
+            b = [cities(1,1),cities(1,2)];
+            
+            checkDistance = [a;b]; % select two points
+            distance = pdist(checkDistance,'euclidean');   % find distance between them
+            totalDist = totalDist + distance;
+        end
         
         %  what we found for the next move
         minDist;
@@ -255,33 +288,38 @@ if nn == 1
     end
     
     % Complete the loop
-
+    
     a = [cities(currentCity,1), cities(currentCity,2)];  % current city coordinates
     b = [cities(startingCity,1),cities(startingCity,2)];
     
     checkDistance = [a;b]; % select two points
     distance = pdist(checkDistance,'euclidean');
-    minDist
-    totalDist = totalDist + distance % Update total distance once more
+    minDist;
+    totalDist = totalDist + distance; % Update total distance once more
     
     x = [cities(currentCity,1), cities(startingCity,1)];
     y = [cities(currentCity,2), cities(startingCity,2)];
     plot(x,y,'r--','LineWidth',plotMarkerSize/8)
     
-    drawnow
-    gif
-    
+    if gifOutput
+        drawnow
+        gif
+    end
 end
 
 
-fprintf('-- Travelling done! -- \n')
+bruteforce_distance = bfDistances(bfMinIndex);
+bruteforce_minimum_vec = min(bfDistances);
 
-o_bf
-bruteforce_distance = bfDistances(bfMinIndex)
-bruteforce_minimum_vec = min(bfDistances)
+nn_distance = totalDist;
 
-nn_distance = totalDist
-o_nn
 
-fprintf('NN algorithm path is %.2f times longer and %.2f times faster.\n',nn_distance/bruteforce_distance, o_bf/o_nn)
+fprintf('Travelling done!\n')
+fprintf('------- Results -------\n')
+
+fprintf(1, 'Alg. |\tBF\tNN\n')               
+fprintf(1, 'O(n) |\t%i\t%i\n', o_bf, o_nn)
+fprintf(1, 'Dist.|\t%.2f\t%.2f\n', bruteforce_distance, nn_distance')
+fprintf('\n')
+fprintf('NN algorithm path is %.2fx (%.2f%%) longer and %.2fx computationally faster.\n',nn_distance/bruteforce_distance, (abs(1-(nn_distance/bruteforce_distance)))*100, o_bf/o_nn)
 
