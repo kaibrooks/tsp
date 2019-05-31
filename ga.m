@@ -1,12 +1,12 @@
 % TSP GA
 % Kai Brooks
 % Jun 2019
-% Description
 %
 % Solves the travelling salesman problem
 % Program first solves using the 'bruteforce' method and plots it in blue
 % Program then uses nn algorithm and solves it in red
 %
+
 
 % Init
 clc
@@ -14,18 +14,26 @@ close all
 clear all
 format
 
-rng('shuffle')
-
 % --- Main options --------------------------------------------------------
 
-maxCities = 9;          % (default 9) number of cities to visit, this is the 'n'
+maxCities = 25;          % (default 9) number of cities to visit, this is the 'n'
                         % decrease this if it hurts the hardware
-gifOutput = 1;          % enables gif output and generation, slows rendering                        
-filename = 'nn.gif';
-% Algorithm enables
-bf = 1;                 % bruteforce algorithm
+gifOutput = 1;          % enables gif output and generation, slows rendering
+filename = 'nn.gif';    % output filename for the gif
+
+twelveCitySeed = 0;     % use pre-computed 12-city seed and skips the bf calculation
+                        % if 0, shuffles seed instead amd runs bf normally
+
+                        % TCS route: 1, 2, 4, 7, 9, 10, 12, 11, 8, 6, 5, 3, 1
+                        % TCS index: 35462161
+                        % TCS dist: 300.25
+                        % TCS NN algorithm path is 1.04x (3.84%) longer and 3628800.00x computationally faster.
+
+% Algorithm enables (with all disabled, just generates the map)
+bf = 0;                 % bruteforce algorithm
 nn = 1;                 % nearest-neighbor algorithm
-    
+ga = 0;                 % genetic algorithm
+
 % --- Advanced options and generator settings -----------------------------
 
 bfTickSize = 10000;     % (default 10000) tick size for timing BF algorithm. Higher numbers = more accuracy, slower to display estimate
@@ -35,17 +43,27 @@ plotMarkerSize = 15;    % (default 10) size of markers on map
 
 verbose = 1;            % outputs things, maybe
 attempts = 100;         % number of attempts to bruteforce the solution before giving up
+maxCpuTime = 100;       % max loops various functions will use before giving up and moving on
 
-% --- Declare other variables (do not modify) -----------------------------
+% --- Zero other variables (do not modify) --------------------------------
 
 totalDist = 0;          % total distance travelled
 o_nn = 0;               % big o for nearest neighbor method
 o_bf = 0;               % big o for bruteforce method
-maxCpuTime = 100;       % max loops various functions will use before giving up and moving on
 gifWritten = 0;         % one-time check for gif creation
-
+nn_distance = 0;
+bf_distance = 0;
+bruteforce_minimum_vec = 0;
 
 % --- Program start -------------------------------------------------------
+
+% Override the generator, if needed
+if twelveCitySeed
+    rng('default')
+    maxCities = 12;
+else
+    rng('shuffle')
+end
 
 % Generate points
 cities = randi([minLoc, maxLoc],2,maxCities); % generate matrix
@@ -68,22 +86,23 @@ visited(currentCity) = 1;
 visitedOrder = zeros([maxCities],1); % vector to store the order which we visited each city
 visitedOrder(currentCity) = 1;
 
-% Create bruteforce path matrix: o(n!)
-arr = [2:maxCities];
-bfVisitOrder = perms(arr);
-bfVisitOrder = rot90(bfVisitOrder); % flip it to make indexing easier
-
-arr = ones(1,length(bfVisitOrder)); % create array of 1's
-bfVisitOrder = [arr;bfVisitOrder];  % append to the beginning
-
-% Add original city back onto end to complete the loop
-for i = 1:length(bfVisitOrder)
-    bfVisitOrder(maxCities+1,i) = bfVisitOrder(1,i);
+if bf
+    % Create bruteforce path matrix: o(n!)
+    arr = [2:maxCities];
+    bfVisitOrder = perms(arr);
+    bfVisitOrder = rot90(bfVisitOrder); % flip it to make indexing easier
+    
+    arr = ones(1,length(bfVisitOrder)); % create array of 1's
+    bfVisitOrder = [arr;bfVisitOrder];  % append to the beginning
+    
+    % Add original city back onto end to complete the loop
+    for i = 1:length(bfVisitOrder)
+        bfVisitOrder(maxCities+1,i) = bfVisitOrder(1,i);
+    end
+    
+    [x,y] = size(bfVisitOrder);  % get total size of matrix
+    bf_omax = x*y;
 end
-
-[x,y] = size(bfVisitOrder);  % get total size of matrix
-bf_omax = x*y;
-
 
 % Create figure
 f = figure('units','normalized','outerposition',[0 0 1 1]);
@@ -121,7 +140,7 @@ text(cities(startingCity,1),cities(startingCity,2),txt)
 %cities
 
 bfEstimatedTime = 0;
-if bf == 1
+if bf
     minDist = maxLoc^2;  % Starting minimum distance
     % while sum(visited) < maxCities
     
@@ -142,7 +161,7 @@ if bf == 1
             totalDist = totalDist + distance;
             
             bfSegmentDistances(i,j) = distance;
-               
+            
         end
         
         if j==bfTickSize
@@ -202,7 +221,7 @@ totalDist = 0;
 minDist = 0;
 
 % Nearest Neighbor Algorithm
-if nn == 1
+if nn
     for j = 2:maxCities
         
         o_nn = o_nn + 1;
@@ -305,21 +324,18 @@ if nn == 1
         drawnow
         gif
     end
+    
+    nn_distance = totalDist
 end
 
-
-bruteforce_distance = bfDistances(bfMinIndex);
-bruteforce_minimum_vec = min(bfDistances);
-
-nn_distance = totalDist;
 
 
 fprintf('Travelling done!\n')
 fprintf('------- Results -------\n')
 
-fprintf(1, 'Alg. |\tBF\tNN\n')               
+fprintf(1, 'Alg. |\tBF\tNN\n')
 fprintf(1, 'O(n) |\t%i\t%i\n', o_bf, o_nn)
-fprintf(1, 'Dist.|\t%.2f\t%.2f\n', bruteforce_distance, nn_distance')
+fprintf(1, 'Dist.|\t%.2f\t%.2f\n', bf_distance, nn_distance')
 fprintf('\n')
-fprintf('NN algorithm path is %.2fx (%.2f%%) longer and %.2fx computationally faster.\n',nn_distance/bruteforce_distance, (abs(1-(nn_distance/bruteforce_distance)))*100, o_bf/o_nn)
+fprintf('NN algorithm path is %.2fx (%.2f%%) longer and %.2fx computationally faster.\n',nn_distance/bf_distance, (abs(1-(nn_distance/bf_distance)))*100, o_bf/o_nn)
 
