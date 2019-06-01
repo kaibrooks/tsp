@@ -1,12 +1,11 @@
-% TSP GA
+% TSP
 % Kai Brooks
 % Jun 2019
 %
 % Solves the travelling salesman problem
-% Program first solves using the 'bruteforce' method and plots it in blue
+% Program first solves using the np method and plots it in blue
 % Program then uses nn algorithm and solves it in red
 %
-
 
 % Init
 clc
@@ -16,10 +15,10 @@ format
 
 % --- Main options --------------------------------------------------------
 
-maxCities = 10;          % (default 9) number of cities to visit, this is the 'n'
+maxCities = 9;          % (default 9) number of cities to visit, this is the 'n'
                         % decrease this if it hurts the hardware
-gifOutput = 1;          % enables gif output and generation, slows rendering
-filename = 'nn.gif';    % output filename for the gif
+gifOutput = 0;          % enables gif output and generation, slows rendering
+filename = 'tsp.gif';    % output filename for the gif
 
 twelveCitySeed = 0;     % use pre-computed 12-city seed and skips the bf calculation
                         % if 0, shuffles seed instead and runs bf normally
@@ -30,16 +29,17 @@ twelveCitySeed = 0;     % use pre-computed 12-city seed and skips the bf calcula
 % TCS NN algorithm path is 1.04x (3.84%) longer and 3628800.00x computationally faster.
 
 % Algorithm enables (with all disabled, just generates the map)
-bf = 1;                 % bruteforce algorithm
-nn = 1;                 % nearest-neighbor algorithm
+bf = 1;                   % bruteforce algorithm
+nn = 1;                   % nearest-neighbor algorithm
 gena = 0;                 % genetic algorithm
 
 % --- Advanced options and generator settings -----------------------------
 
 bfTickSize = 10000;     % (default 10000) tick size for timing BF algorithm. Higher numbers = more accuracy, slower to display estimate
 minLoc = 1;             % (default 1) minimum coordinate to generate for city locations
-maxLoc = 100;           % (default 100) maximum coordinate to generate for city locations
-plotMarkerSize = 15;    % (default 10) size of markers on map
+maxLoc = 1000;           % (default 100) maximum coordinate to generate for city locations
+plotMarkerSize = 10;    % (default 10) size of markers on map
+showLabels = 1;         % (default 1) display city numbers on plot
 
 verbose = 1;            % outputs things, maybe
 attempts = 100;         % number of attempts to bruteforce the solution before giving up
@@ -53,11 +53,13 @@ o_bf = 0;               % big o for bruteforce method
 gifWritten = 0;         % one-time check for gif creation
 nn_distance = 0;
 bf_distance = 0;
+bf_time = 0;
+nnSecs = 0;
 bruteforce_minimum_vec = 0;
 
 % --- Program start -------------------------------------------------------
 
-% Override the generator, if needed
+% Override the rng if using the precomputed seed
 if twelveCitySeed
     rng('default')
     maxCities = 12;
@@ -107,7 +109,7 @@ for i=1:maxCities
     else
         plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize)
     end
-    text(cities(i,1),cities(i,2),sprintf('   %i', i))
+    if showLabels, text(cities(i,1),cities(i,2),sprintf('   %i', i)), end
     
 end
 
@@ -117,6 +119,7 @@ text(cities(startingCity,1),cities(startingCity,2),txt)
 % --- Algorithms ----------------------------------------------------------
 % Bruteforce algorithm (bf)
 if bf 
+    fprintf('Generating bf pathing matrix...\n')
     % Create gigantic bruteforce path matrix: o(n!)
     arr = [2:maxCities];
     bfVisitOrder = perms(arr);
@@ -157,7 +160,7 @@ if bf
         
         if j==bfTickSize
             timing = toc;
-            bfEstimatedTime = timing*((length(bfVisitOrder)-bfTickSize)/bfTickSize) % timing*((length(bfVisitOrder)-bfTickSize)/bfTickSize) for 'time remaining as of this timing'
+            bfEstimatedTime = timing*(length(bfVisitOrder)/bfTickSize) % timing*((length(bfVisitOrder)-bfTickSize)/bfTickSize) for 'time remaining as of this timing'
             bfTimeTicks = length(bfVisitOrder)/bfTickSize;
         end
         
@@ -167,26 +170,15 @@ if bf
         % Output running information
         clc
         fprintf('Starting BF for n=%i, O(n!)=%i \n',maxCities, bf_omax)
+        
         if length(bfVisitOrder) > bfTickSize % only display if enough data to estimate
             if bfEstimatedTime > 0
-                hours = 0;
-                mins = 0;
-                secs = 0;
-                
-                mins = floor(bfEstimatedTime / 60);
-                secs = (rem(bfEstimatedTime, 60));
-                
-                if mins > 60
-                    hours = floor(mins / 60);
-                    mins = mins - (hours*60);
-                end
-                
-                bfTime = sprintf('%ih %im %.0fs',hours,mins,secs); % format time
-                fprintf('Estimated runtime: %s\n',bfTime)
+                fprintf('Estimated runtime: %s\n',formatTime(bfEstimatedTime))
             else
                 fprintf('Estimated runtime: (Sampling %i more times..)\n',bfTickSize-j)
             end
         end
+        fprintf('Current runtime  : %s\n',formatTime(toc))
         fprintf('Computing optimal route... %.2f%% \n', (o_bf / bf_omax) * 100)
         
     end % end of loop
@@ -217,6 +209,22 @@ if bf
         %bfVisitOrder(i:4,bfShortest) gives path
         
     end
+    bfSecs = toc;
+    if bfSecs > 0
+        hours = 0;
+        mins = 0;
+        secs = 0;
+        
+        mins = floor(bfSecs / 60);
+        secs = (rem(bfSecs, 60));
+        
+        if mins > 60
+            hours = floor(mins / 60);
+            mins = mins - (hours*60);
+        end
+        
+        bf_time = sprintf('%ih%im%.0fs',hours,mins,secs); % format time
+    end
     
     %fprintf('BF method complete in %.2f seconds\n', toc)
 end
@@ -228,7 +236,8 @@ minDist = 0;
 % Nearest Neighbor Algorithm
 if nn
     for j = 2:maxCities
-        
+    if j==2,tic,end % start the clock on 2
+     
         o_nn = o_nn + 1;
         
         ccLoc = [cities(currentCity,1), cities(currentCity,2)]; % coords of current city
@@ -260,7 +269,7 @@ if nn
                 title("" + o_nn)
                 if  gifWritten == 0
                     gifWritten = 1;
-                    gif('nn.gif','DelayTime',0.01,'LoopCount',1,'frame',gcf)
+                    gif(filename,'DelayTime',0.01,'LoopCount',1,'frame',gcf)
                 else
                     gifWritten = 1;
                     gif
@@ -331,6 +340,8 @@ if nn
     end
     
     nn_distance = totalDist
+    
+    nn_time = formatTime(toc);
 end
 
 
@@ -338,9 +349,10 @@ end
 fprintf('Travelling done!\n')
 fprintf('------- Results -------\n')
 
-fprintf(1, 'Alg. |\tBF\tNN\n')
-fprintf(1, 'O(n) |\t%i\t%i\n', o_bf, o_nn)
-fprintf(1, 'Dist.|\t%.2f\t%.2f\n', bf_distance, nn_distance')
+fprintf(1, 'Alg. |\tBF\t\tNN\n')
+fprintf(1, 'O(n) |\t%i\t\t%i\n', o_bf, o_nn)
+fprintf(1, 'Dist.|\t%.2f\t\t%.2f\n', bf_distance, nn_distance')
+fprintf(1, 'Time |\t%s\t\t%s\n', bf_time, nn_time)
 fprintf('\n')
 fprintf('NN algorithm path is %.2fx (%.2f%%) longer and %.2fx computationally faster.\n',nn_distance/bf_distance, (abs(1-(nn_distance/bf_distance)))*100, o_bf/o_nn)
 
