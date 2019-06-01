@@ -16,23 +16,23 @@ format
 
 % --- Main options --------------------------------------------------------
 
-maxCities = 25;          % (default 9) number of cities to visit, this is the 'n'
-                        % decrease this if it hurts the hardware
+maxCities = 6;          % (default 9) number of cities to visit, this is the 'n'
+% decrease this if it hurts the hardware
 gifOutput = 1;          % enables gif output and generation, slows rendering
 filename = 'nn.gif';    % output filename for the gif
 
 twelveCitySeed = 0;     % use pre-computed 12-city seed and skips the bf calculation
-                        % if 0, shuffles seed instead amd runs bf normally
+% if 0, shuffles seed instead amd runs bf normally
 
-                        % TCS route: 1, 2, 4, 7, 9, 10, 12, 11, 8, 6, 5, 3, 1
-                        % TCS index: 35462161
-                        % TCS dist: 300.25
-                        % TCS NN algorithm path is 1.04x (3.84%) longer and 3628800.00x computationally faster.
+% TCS route: 1, 2, 4, 7, 9, 10, 12, 11, 8, 6, 5, 3, 1
+% TCS index: 35462161
+% TCS dist: 300.25
+% TCS NN algorithm path is 1.04x (3.84%) longer and 3628800.00x computationally faster.
 
 % Algorithm enables (with all disabled, just generates the map)
-bf = 0;                 % bruteforce algorithm
+bf = 1;                 % bruteforce algorithm
 nn = 1;                 % nearest-neighbor algorithm
-ga = 0;                 % genetic algorithm
+gena = 0;                 % genetic algorithm
 
 % --- Advanced options and generator settings -----------------------------
 
@@ -77,32 +77,14 @@ end
 maxCities = length(cities);  % shorten everything else if we don't have enough cities
 
 
-startingCity = randi(maxCities);
-currentCity = startingCity;
+startingCity = randi(maxCities);    % randomize starting city
+currentCity = startingCity;         % and remember its where we started
 
-visited = zeros([maxCities],1); % boolean to mark each visited city
-visited(currentCity) = 1;
+visited = zeros([maxCities],1);     % boolean to mark each visited city
+visited(currentCity) = 1;           % we're already in our city, so mark it
 
 visitedOrder = zeros([maxCities],1); % vector to store the order which we visited each city
-visitedOrder(currentCity) = 1;
-
-if bf
-    % Create bruteforce path matrix: o(n!)
-    arr = [2:maxCities];
-    bfVisitOrder = perms(arr);
-    bfVisitOrder = rot90(bfVisitOrder); % flip it to make indexing easier
-    
-    arr = ones(1,length(bfVisitOrder)); % create array of 1's
-    bfVisitOrder = [arr;bfVisitOrder];  % append to the beginning
-    
-    % Add original city back onto end to complete the loop
-    for i = 1:length(bfVisitOrder)
-        bfVisitOrder(maxCities+1,i) = bfVisitOrder(1,i);
-    end
-    
-    [x,y] = size(bfVisitOrder);  % get total size of matrix
-    bf_omax = x*y;
-end
+visitedOrder(currentCity) = 1;      % mark out starting city on the path
 
 % Create figure
 f = figure('units','normalized','outerposition',[0 0 1 1]);
@@ -110,8 +92,6 @@ axis tight manual % this ensures that getframe() returns a consistent size
 
 hold on
 grid on
-
-
 
 xlim([minLoc maxLoc])
 ylim([minLoc maxLoc])
@@ -134,22 +114,33 @@ end
 txt = '    \leftarrow Start';
 text(cities(startingCity,1),cities(startingCity,2),txt)
 
-% Algorithms
-% Bruteforce Algorithm
-%bfVisitOrder
-%cities
-
-bfEstimatedTime = 0;
-if bf
-    minDist = maxLoc^2;  % Starting minimum distance
+% --- Algorithms ----------------------------------------------------------
+% Bruteforce algorithm (bf)
+if bf 
+    % Create gigantic bruteforce path matrix: o(n!)
+    arr = [2:maxCities];
+    bfVisitOrder = perms(arr);
+    bfVisitOrder = rot90(bfVisitOrder); % flip it to make indexing easier
+    
+    arr = ones(1,length(bfVisitOrder)); % create array of 1's
+    bfVisitOrder = [arr;bfVisitOrder];  % append to the beginning
+    
+    % Add original city back onto end to complete the loop
+    for i = 1:length(bfVisitOrder)
+        bfVisitOrder(maxCities+1,i) = bfVisitOrder(1,i);
+    end
+    
+    bf_omax = numel(bfVisitOrder); % get total size of matrix
+    bfEstimatedTime = 0;    % zero the estimation before starting the loop
+    %minDist = maxLoc^2;  % starting minimum distance
     % while sum(visited) < maxCities
     
     for j=1:length(bfVisitOrder)
         o_bf = o_bf + 1;
         
-        if j==1,tic,end
+        if j==1,tic,end % start the clock on 1
         
-        for i=1:maxCities %+1 to account for return to start
+        for i=1:maxCities
             o_bf = o_bf + 1;
             
             a = [cities(bfVisitOrder(i,j),1),cities(bfVisitOrder(i,j),2)];
@@ -185,7 +176,7 @@ if bf
         end
         fprintf('Computing optimal route... %.2f%% \n', (o_bf / bf_omax) * 100)
         
-    end
+    end % end of loop
     
     % Find min value
     [bfMinDist,bfMinIndex] = min(bfDistances);
@@ -197,6 +188,7 @@ if bf
     %bfDist
     %     bfMinIndex
     %     bfDistances(bfMinIndex)
+    bf_distance = bfMinDist;    % save for comparison
     
     % Plot it
     for i=1:maxCities
@@ -216,7 +208,7 @@ if bf
     %fprintf('BF method complete in %.2f seconds\n', toc)
 end
 
-% Reset variables
+% Clear variables between runs
 totalDist = 0;
 minDist = 0;
 
@@ -233,7 +225,7 @@ if nn
         for i = 1:maxCities
             o_nn = o_nn + 1;
             
-            if visited(i) == 1, continue, end % skip cities we've visited
+            if visited(i), continue, end % skip cities we've visited
             
             a = ccLoc;  % current city coordinates
             b = [cities(i,1),cities(i,2)];
@@ -243,7 +235,7 @@ if nn
             distance = pdist(checkDistance,'euclidean');    % find distance between them
             
             % Draw decision lines
-            if gifOutput == 1
+            if gifOutput
                 % Draw 'decision' line
                 x = [cities(currentCity,1), cities(i,1)];
                 y = [cities(currentCity,2), cities(i,2)];
