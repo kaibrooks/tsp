@@ -16,13 +16,13 @@ format
 
 % --- Main options --------------------------------------------------------
 
-maxCities = 6;          % (default 9) number of cities to visit, this is the 'n'
-% decrease this if it hurts the hardware
+maxCities = 10;          % (default 9) number of cities to visit, this is the 'n'
+                        % decrease this if it hurts the hardware
 gifOutput = 1;          % enables gif output and generation, slows rendering
 filename = 'nn.gif';    % output filename for the gif
 
 twelveCitySeed = 0;     % use pre-computed 12-city seed and skips the bf calculation
-% if 0, shuffles seed instead amd runs bf normally
+                        % if 0, shuffles seed instead and runs bf normally
 
 % TCS route: 1, 2, 4, 7, 9, 10, 12, 11, 8, 6, 5, 3, 1
 % TCS index: 35462161
@@ -138,7 +138,7 @@ if bf
     for j=1:length(bfVisitOrder)
         o_bf = o_bf + 1;
         
-        if j==1,tic,end % start the clock on 1
+        if j==1,tic,end % start the clock on 2
         
         for i=1:maxCities
             o_bf = o_bf + 1;
@@ -169,7 +169,20 @@ if bf
         fprintf('Starting BF for n=%i, O(n!)=%i \n',maxCities, bf_omax)
         if length(bfVisitOrder) > bfTickSize % only display if enough data to estimate
             if bfEstimatedTime > 0
-                fprintf('Estimated runtime: %.2f seconds\n',bfEstimatedTime)
+                hours = 0;
+                mins = 0;
+                secs = 0;
+                
+                mins = floor(bfEstimatedTime / 60);
+                secs = (rem(bfEstimatedTime, 60));
+                
+                if mins > 60
+                    hours = floor(mins / 60);
+                    mins = mins - (hours*60);
+                end
+                
+                bfTime = sprintf('%ih %im %.0fs',hours,mins,secs); % format time
+                fprintf('Estimated runtime: %s\n',bfTime)
             else
                 fprintf('Estimated runtime: (Sampling %i more times..)\n',bfTickSize-j)
             end
