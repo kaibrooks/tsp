@@ -15,9 +15,9 @@ format
 
 % --- Main options --------------------------------------------------------
 
-maxCities = 9;          % (default 9) number of cities to visit, this is the 'n'
+maxCities = 10;          % (default 9) number of cities to visit, this is the 'n'
                         % decrease this if it hurts the hardware
-gifOutput = 0;          % enables gif output and generation, slows rendering
+gifOutput = 1;          % enables gif output and generation, slows rendering
 filename = 'tsp.gif';    % output filename for the gif
 
 twelveCitySeed = 0;     % use pre-computed 12-city seed and skips the bf calculation
@@ -29,15 +29,19 @@ twelveCitySeed = 0;     % use pre-computed 12-city seed and skips the bf calcula
 % TCS NN algorithm path is 1.04x (3.84%) longer and 3628800.00x computationally faster.
 
 % Algorithm enables (with all disabled, just generates the map)
-bf = 1;                   % bruteforce algorithm
-nn = 1;                   % nearest-neighbor algorithm
-gena = 0;                 % genetic algorithm
+bf = 0;                   % bruteforce algorithm
+nn = 0;                   % nearest-neighbor algorithm
+gena = 1;                 % genetic algorithm
 
 % --- Advanced options and generator settings -----------------------------
 
+outputResults = 0;      % (default 1) shows analysis at completion
+
 bfTickSize = 10000;     % (default 10000) tick size for timing BF algorithm. Higher numbers = more accuracy, slower to display estimate
+gaInitPopSize = 5;      % (default ???) population for genetic algorithm 
+
 minLoc = 1;             % (default 1) minimum coordinate to generate for city locations
-maxLoc = 1000;           % (default 100) maximum coordinate to generate for city locations
+maxLoc = 100;           % (default 100) maximum coordinate to generate for city locations
 plotMarkerSize = 10;    % (default 10) size of markers on map
 showLabels = 1;         % (default 1) display city numbers on plot
 
@@ -48,12 +52,18 @@ maxCpuTime = 100;       % max loops various functions will use before giving up 
 % --- Zero other variables (do not modify) --------------------------------
 
 totalDist = 0;          % total distance travelled
+gifWritten = 0;         % one-time check for gif creation
+
 o_nn = 0;               % big o for nearest neighbor method
 o_bf = 0;               % big o for bruteforce method
-gifWritten = 0;         % one-time check for gif creation
-nn_distance = 0;
+o_ga = 0;
+nn_distance = 0;        % total minimum distance
 bf_distance = 0;
-bf_time = 0;
+ga_distance = 0;
+bf_time = 0;            % time to run algorithm
+nn_time = 0;
+ga_time = 0;
+
 nnSecs = 0;
 bruteforce_minimum_vec = 0;
 
@@ -89,7 +99,7 @@ visitedOrder = zeros([maxCities],1); % vector to store the order which we visite
 visitedOrder(currentCity) = 1;      % mark out starting city on the path
 
 % Create figure
-f = figure('units','normalized','outerposition',[0 0 1 1]);
+%f = figure('units','normalized','outerposition',[0 0 1 1]);
 axis tight manual % this ensures that getframe() returns a consistent size
 
 hold on
@@ -235,6 +245,7 @@ minDist = 0;
 
 % Nearest Neighbor Algorithm
 if nn
+    fprintf('Computing nearest neighbor route...\n')
     for j = 2:maxCities
     if j==2,tic,end % start the clock on 2
      
@@ -261,8 +272,9 @@ if nn
                 % Draw 'decision' line
                 x = [cities(currentCity,1), cities(i,1)];
                 y = [cities(currentCity,2), cities(i,2)];
-                plot(x,y,'g:','LineWidth',plotMarkerSize/8)
                 
+                h = plot(x,y,'g:','LineWidth',plotMarkerSize/8)
+                uistack(h,'bottom');
                 
                 drawnow
                 % Capture the plot as an image
@@ -339,20 +351,103 @@ if nn
         gif
     end
     
-    nn_distance = totalDist
+    nn_distance = totalDist;
     
     nn_time = formatTime(toc);
 end
 
+% Clear variables between runs
+totalDist = 0;
+minDist = 0;
+
+% genetic algorithm
+if gena
+% create genes
+linearPath = [1:maxCities];
+
+for i=1:gaInitPopSize
+    dnade(i,:) = linearPath(randperm(length(linearPath)));
+end
+
+% shift matrix so starting city is correct
+for i=1:gaInitPopSize
+    k = find(dnade(i,:) == startingCity);
+    dnade(i,:) = circshift(dnade(i,:), (maxCities+1) - k);
+end
+
+dnade
+
+% dont add remaining city, just go back to it and let the ga sort it out?
 
 
-fprintf('Travelling done!\n')
-fprintf('------- Results -------\n')
 
-fprintf(1, 'Alg. |\tBF\t\tNN\n')
-fprintf(1, 'O(n) |\t%i\t\t%i\n', o_bf, o_nn)
-fprintf(1, 'Dist.|\t%.2f\t\t%.2f\n', bf_distance, nn_distance')
-fprintf(1, 'Time |\t%s\t\t%s\n', bf_time, nn_time)
-fprintf('\n')
-fprintf('NN algorithm path is %.2fx (%.2f%%) longer and %.2fx computationally faster.\n',nn_distance/bf_distance, (abs(1-(nn_distance/bf_distance)))*100, o_bf/o_nn)
 
+% for i = 1:initPopSize
+%     dnabi(i,:) = round(rand(1,dnaLength)); % dna with word length = maxCities
+%     % dna stored by (i,j), where i = genotype (entire thing), j = chromosome (bit)
+%     clc
+%     fprintf('\n')
+%     fprintf('Generating %i more population...\n',initPopSize-i)
+% end
+% popGenTime = formatTime(toc);
+% fprintf('Population generated in %s\n',popGenTime)
+%
+% dnabi;
+%
+% % convert DNA into number for pathing
+% tic
+% fprintf('Converting genes to path order...\n')
+% for k = 1:initPopSize           % population
+%     for j = 1:maxCities         % genotype
+%         for i = 1:wordLength    % word
+%             temp(i) = dnabi(k, i+((j*wordLength)-wordLength) );
+%         end
+%         dnade(k,j) = bi2de(flip(temp)); % flip so the lsb is the rightmost bit
+%         clear temp;
+%     end
+%     clc
+%     fprintf('Population generated in %s\n',popGenTime)
+%     fprintf('Generating %i more genes paths...\n',initPopSize-k)
+%
+% end
+%
+% fprintf('Path order generated in %s\n',formatTime(toc))
+%
+% dnade;
+
+% dnade = dnade+1; % how to add 1 for route calculation
+
+% --- wipe out all invalid genes
+
+% Determine if rows have duplicate entries (and are thus invalid)
+% uniqueEntries = 0;
+% for i = 1:initPopSize
+%     a = dnade(i:i,:);
+%     if length(a) == length(unique(a))
+%         %fprintf('%i: unique\n',i)
+%         uniqueEntries = uniqueEntries + 1;
+%     else
+%         %fprintf('%i: not unique\n',i)
+%     end
+% end
+% 
+% uniqueRatio = uniqueEntries / initPopSize;
+% 
+% fprintf('%i valid genotypes: %.2f%%',uniqueEntries, uniqueRatio*100)
+
+
+end
+
+
+if outputResults
+    fprintf('\nTravelling done!\n')
+    fprintf('------- Results -------\n')
+    
+    fprintf(1, 'Alg. |\tBF\t\tNN\t\tGA\n')
+    fprintf(1, 'O(n) |\t%i\t\t%i\t\t%i\n', o_bf, o_nn, o_ga)
+    fprintf(1, 'Dist.|\t%.2f\t\t%.2f\t\t%.2f\n', bf_distance, nn_distance, ga_distance')
+    fprintf(1, 'Time |\t%s\t\t%s\t\t%s\n', bf_time, nn_time, ga_time)
+    fprintf('\n')
+    fprintf('NN algorithm path is %.2fx (%.2f%%) longer and %.2fx computationally faster.\n',nn_distance/bf_distance, (abs(1-(nn_distance/bf_distance)))*100, o_bf/o_nn)
+    
+end
