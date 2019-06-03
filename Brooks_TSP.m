@@ -206,7 +206,7 @@ if bf
     bf_distance = bfMinDist;    % save for comparison
     
     % Plot it
-    for i=1:maxCities
+    for i=1:maxCities-1
         
         a = [cities(bfVisitOrder(i,bfMinIndex),1), cities(bfVisitOrder(i,bfMinIndex),2)];
         b = [cities(bfVisitOrder(i+1,bfMinIndex),1), cities(bfVisitOrder(i+1,bfMinIndex),2)];
@@ -366,21 +366,69 @@ if gena
 linearPath = [1:maxCities];
 
 for i=1:gaInitPopSize
-    dnade(i,:) = linearPath(randperm(length(linearPath)));
+    gaVisitOrder(i,:) = linearPath(randperm(length(linearPath)));
 end
 
 % shift matrix so starting city is correct
 for i=1:gaInitPopSize
-    k = find(dnade(i,:) == startingCity);
-    dnade(i,:) = circshift(dnade(i,:), (maxCities+1) - k);
+    k = find(gaVisitOrder(i,:) == startingCity);
+    gaVisitOrder(i,:) = circshift(gaVisitOrder(i,:), (maxCities+1) - k);
 end
 
-dnade
+gaVisitOrder;
+gaVisitOrder = flip(rot90(gaVisitOrder)); % rearrange for visitation reasons
+
 
 % dont add remaining city, just go back to it and let the ga sort it out?
 
+% calculate lengths of each option
+for j=1:gaInitPopSize
+        o_ga = o_ga + 1;
+        
+        if j==1,tic,end % start the clock on 2
+        
+        for i=1:maxCities-1 % -1 because we loop back around instead of indexing the path back to start
+            o_ga = o_ga + 1;
+            
+            a = [cities(gaVisitOrder(i,j),1),cities(gaVisitOrder(i,j),2)];
+            b = [cities(gaVisitOrder(i+1,j),1),cities(gaVisitOrder(i+1,j),2)];
+            
+            checkDistance = [a;b]; % select two points
+            distance = pdist(checkDistance,'euclidean');   % find distance between them
+            %distance = floor(distance); % truncate
+            totalDist = totalDist + distance;
+            
+            gaSegmentDistances(i,j) = distance;
+            
+        end
+        
+   % timing     
+%         if j==bfTickSize
+%             timing = toc;
+%             bfEstimatedTime = timing*(length(bfVisitOrder)/bfTickSize) % timing*((length(bfVisitOrder)-bfTickSize)/bfTickSize) for 'time remaining as of this timing'
+%             bfTimeTicks = length(bfVisitOrder)/bfTickSize;
+%         end
+        
+        gaDistances(j) = totalDist; % store the total path length
+        totalDist = 0;              % reset for the next run
+        
+        % Output running information
+%         clc
+%         fprintf('Starting BF for n=%i, O(n!)=%i \n',maxCities, bf_omax)
+%         
+%         if length(bfVisitOrder) > bfTickSize % only display if enough data to estimate
+%             if bfEstimatedTime > 0
+%                 fprintf('Estimated runtime: %s\n',formatTime(bfEstimatedTime))
+%             else
+%                 fprintf('Estimated runtime: (Sampling %i more times..)\n',bfTickSize-j)
+%             end
+%         end
+%         fprintf('Current runtime  : %s\n',formatTime(toc))
+%         fprintf('Computing optimal route... %.2f%% \n', (o_bf / bf_omax) * 100)
+        
+    end % end of loop
 
-
+    gaDistances
 
 % for i = 1:initPopSize
 %     dnabi(i,:) = round(rand(1,dnaLength)); % dna with word length = maxCities
@@ -402,7 +450,7 @@ dnade
 %         for i = 1:wordLength    % word
 %             temp(i) = dnabi(k, i+((j*wordLength)-wordLength) );
 %         end
-%         dnade(k,j) = bi2de(flip(temp)); % flip so the lsb is the rightmost bit
+%         gaVisitOrder(k,j) = bi2de(flip(temp)); % flip so the lsb is the rightmost bit
 %         clear temp;
 %     end
 %     clc
@@ -413,16 +461,16 @@ dnade
 %
 % fprintf('Path order generated in %s\n',formatTime(toc))
 %
-% dnade;
+% gaVisitOrder;
 
-% dnade = dnade+1; % how to add 1 for route calculation
+% gaVisitOrder = gaVisitOrder+1; % how to add 1 for route calculation
 
 % --- wipe out all invalid genes
 
 % Determine if rows have duplicate entries (and are thus invalid)
 % uniqueEntries = 0;
 % for i = 1:initPopSize
-%     a = dnade(i:i,:);
+%     a = gaVisitOrder(i:i,:);
 %     if length(a) == length(unique(a))
 %         %fprintf('%i: unique\n',i)
 %         uniqueEntries = uniqueEntries + 1;
