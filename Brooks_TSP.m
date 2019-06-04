@@ -15,13 +15,13 @@ format
 
 % --- Main options --------------------------------------------------------
 
-maxCities = 10;          % (default 9) number of cities to visit, this is the 'n'
-                        % decrease this if it hurts the hardware
-gifOutput = 1;          % enables gif output and generation, slows rendering
+maxCities = 8;          % (default 9) number of cities to visit, this is the 'n'
+% decrease this if it hurts the hardware
+gifOutput = 0;          % enables gif output and generation, slows rendering
 filename = 'tsp.gif';    % output filename for the gif
 
 twelveCitySeed = 0;     % use pre-computed 12-city seed and skips the bf calculation
-                        % if 0, shuffles seed instead and runs bf normally
+% if 0, shuffles seed instead and runs bf normally
 
 % TCS route: 1, 2, 4, 7, 9, 10, 12, 11, 8, 6, 5, 3, 1
 % TCS index: 35462161
@@ -37,8 +37,10 @@ gena = 1;                 % genetic algorithm
 
 outputResults = 0;      % (default 1) shows analysis at completion
 
+selectionFactor = 2;    % (default 2) fractional number of members to select each epoch (eg: 3 = 1/3 of members)
+
 bfTickSize = 10000;     % (default 10000) tick size for timing BF algorithm. Higher numbers = more accuracy, slower to display estimate
-gaInitPopSize = 5;      % (default ???) population for genetic algorithm 
+gaInitPopSize = 10;     % (default ???) population for genetic algorithm
 
 minLoc = 1;             % (default 1) minimum coordinate to generate for city locations
 maxLoc = 100;           % (default 100) maximum coordinate to generate for city locations
@@ -128,7 +130,7 @@ text(cities(startingCity,1),cities(startingCity,2),txt)
 
 % --- Algorithms ----------------------------------------------------------
 % Bruteforce algorithm (bf)
-if bf 
+if bf
     fprintf('Generating bf pathing matrix...\n')
     % Create gigantic bruteforce path matrix: o(n!)
     arr = [2:maxCities];
@@ -206,7 +208,7 @@ if bf
     bf_distance = bfMinDist;    % save for comparison
     
     % Plot it
-    for i=1:maxCities-1
+    for i=1:maxCities
         
         a = [cities(bfVisitOrder(i,bfMinIndex),1), cities(bfVisitOrder(i,bfMinIndex),2)];
         b = [cities(bfVisitOrder(i+1,bfMinIndex),1), cities(bfVisitOrder(i+1,bfMinIndex),2)];
@@ -247,8 +249,8 @@ minDist = 0;
 if nn
     fprintf('Computing nearest neighbor route...\n')
     for j = 2:maxCities
-    if j==2,tic,end % start the clock on 2
-     
+        if j==2,tic,end % start the clock on 2
+        
         o_nn = o_nn + 1;
         
         ccLoc = [cities(currentCity,1), cities(currentCity,2)]; % coords of current city
@@ -362,32 +364,38 @@ minDist = 0;
 
 % genetic algorithm
 if gena
-% create genes
-linearPath = [1:maxCities];
-
-for i=1:gaInitPopSize
-    gaVisitOrder(i,:) = linearPath(randperm(length(linearPath)));
-end
-
-% shift matrix so starting city is correct
-for i=1:gaInitPopSize
-    k = find(gaVisitOrder(i,:) == startingCity);
-    gaVisitOrder(i,:) = circshift(gaVisitOrder(i,:), (maxCities+1) - k);
-end
-
-gaVisitOrder;
-gaVisitOrder = flip(rot90(gaVisitOrder)); % rearrange for visitation reasons
-
-
-% dont add remaining city, just go back to it and let the ga sort it out?
-
-% calculate lengths of each option
-for j=1:gaInitPopSize
+    % create genes
+    linearPath = [1:maxCities];
+    
+    for i=1:gaInitPopSize
+        gaVisitOrder(i,:) = linearPath(randperm(length(linearPath)));
+    end
+    
+    % shift matrix so starting city is correct
+    for i=1:gaInitPopSize
+        k = find(gaVisitOrder(i,:) == startingCity);
+        gaVisitOrder(i,:) = circshift(gaVisitOrder(i,:), (maxCities+1) - k);
+    end
+    
+    % copy first entry and place it on back
+    arr = ones(1,gaInitPopSize);
+    arr = arr * startingCity;
+    
+    gaVisitOrder;
+    gaVisitOrder = flip(rot90(gaVisitOrder)); % rearrange for visitation reasons
+    gaVisitOrder = [gaVisitOrder;arr];
+    
+    
+    
+    % dont add remaining city, just go back to it and let the ga sort it out?
+    
+    % calculate lengths of each option
+    for j=1:gaInitPopSize
         o_ga = o_ga + 1;
         
         if j==1,tic,end % start the clock on 2
         
-        for i=1:maxCities-1 % -1 because we loop back around instead of indexing the path back to start
+        for i=1:maxCities % if -1 because we loop back around instead of indexing the path back to start
             o_ga = o_ga + 1;
             
             a = [cities(gaVisitOrder(i,j),1),cities(gaVisitOrder(i,j),2)];
@@ -402,90 +410,123 @@ for j=1:gaInitPopSize
             
         end
         
-   % timing     
-%         if j==bfTickSize
-%             timing = toc;
-%             bfEstimatedTime = timing*(length(bfVisitOrder)/bfTickSize) % timing*((length(bfVisitOrder)-bfTickSize)/bfTickSize) for 'time remaining as of this timing'
-%             bfTimeTicks = length(bfVisitOrder)/bfTickSize;
-%         end
+        % timing
+        %         if j==bfTickSize
+        %             timing = toc;
+        %             bfEstimatedTime = timing*(length(bfVisitOrder)/bfTickSize) % timing*((length(bfVisitOrder)-bfTickSize)/bfTickSize) for 'time remaining as of this timing'
+        %             bfTimeTicks = length(bfVisitOrder)/bfTickSize;
+        %         end
         
         gaDistances(j) = totalDist; % store the total path length
         totalDist = 0;              % reset for the next run
         
         % Output running information
-%         clc
-%         fprintf('Starting BF for n=%i, O(n!)=%i \n',maxCities, bf_omax)
-%         
-%         if length(bfVisitOrder) > bfTickSize % only display if enough data to estimate
-%             if bfEstimatedTime > 0
-%                 fprintf('Estimated runtime: %s\n',formatTime(bfEstimatedTime))
-%             else
-%                 fprintf('Estimated runtime: (Sampling %i more times..)\n',bfTickSize-j)
-%             end
-%         end
-%         fprintf('Current runtime  : %s\n',formatTime(toc))
-%         fprintf('Computing optimal route... %.2f%% \n', (o_bf / bf_omax) * 100)
+        %         clc
+        %         fprintf('Starting BF for n=%i, O(n!)=%i \n',maxCities, bf_omax)
+        %
+        %         if length(bfVisitOrder) > bfTickSize % only display if enough data to estimate
+        %             if bfEstimatedTime > 0
+        %                 fprintf('Estimated runtime: %s\n',formatTime(bfEstimatedTime))
+        %             else
+        %                 fprintf('Estimated runtime: (Sampling %i more times..)\n',bfTickSize-j)
+        %             end
+        %         end
+        %         fprintf('Current runtime  : %s\n',formatTime(toc))
+        %         fprintf('Computing optimal route... %.2f%% \n', (o_bf / bf_omax) * 100)
         
     end % end of loop
-
+    
+    % normalize values for selection process (vector sum = 1)
+    gaVisitOrder
     gaDistances
-
-% for i = 1:initPopSize
-%     dnabi(i,:) = round(rand(1,dnaLength)); % dna with word length = maxCities
-%     % dna stored by (i,j), where i = genotype (entire thing), j = chromosome (bit)
-%     clc
-%     fprintf('\n')
-%     fprintf('Generating %i more population...\n',initPopSize-i)
-% end
-% popGenTime = formatTime(toc);
-% fprintf('Population generated in %s\n',popGenTime)
-%
-% dnabi;
-%
-% % convert DNA into number for pathing
-% tic
-% fprintf('Converting genes to path order...\n')
-% for k = 1:initPopSize           % population
-%     for j = 1:maxCities         % genotype
-%         for i = 1:wordLength    % word
-%             temp(i) = dnabi(k, i+((j*wordLength)-wordLength) );
-%         end
-%         gaVisitOrder(k,j) = bi2de(flip(temp)); % flip so the lsb is the rightmost bit
-%         clear temp;
-%     end
-%     clc
-%     fprintf('Population generated in %s\n',popGenTime)
-%     fprintf('Generating %i more genes paths...\n',initPopSize-k)
-%
-% end
-%
-% fprintf('Path order generated in %s\n',formatTime(toc))
-%
-% gaVisitOrder;
-
-% gaVisitOrder = gaVisitOrder+1; % how to add 1 for route calculation
-
-% --- wipe out all invalid genes
-
-% Determine if rows have duplicate entries (and are thus invalid)
-% uniqueEntries = 0;
-% for i = 1:initPopSize
-%     a = gaVisitOrder(i:i,:);
-%     if length(a) == length(unique(a))
-%         %fprintf('%i: unique\n',i)
-%         uniqueEntries = uniqueEntries + 1;
-%     else
-%         %fprintf('%i: not unique\n',i)
-%     end
-% end
-% 
-% uniqueRatio = uniqueEntries / initPopSize;
-% 
-% fprintf('%i valid genotypes: %.2f%%',uniqueEntries, uniqueRatio*100)
-
-
+    gaFitness = gaDistances ./ norm(gaDistances,1);
+    preMean = mean(gaFitness);
+    gaFitness
+    
+    
+    % select members
+    selected = zeros(1,gaInitPopSize);
+    while sum(selected) < (gaInitPopSize/selectionFactor) % run until it selects 1/selectionFactor of the members
+        a = rand();
+        for i = 1:gaInitPopSize;
+            a = a - gaFitness(i);
+            %fprintf('%.4f - %.4f\n',a,gaFitness(i))
+            if a < 0
+                %fprintf('Selected:  %i\n',i)
+                gaFitness(i) = 0;
+                selected(i) = 1;
+                break
+            end
+        end
+    end
+    
+    % get selected mean, for statistical reasons
+    tempMean = 0;
+    for i = 1:gaInitPopSize
+        if gaFitness(i)
+            tempMean(i) = gaFitness(i);
+        end
+    end
+    tempMean = tempMean(tempMean ~= 0); % remove zeroes, only mean
+    
+    
+    postMean = mean(tempMean(tempMean ~= 0));
+    fprintf('Mean %.4f -> %.4f (%.4f change)\n', preMean, postMean, postMean/preMean)
+    
+    
+    % for i = 1:initPopSize
+    %     dnabi(i,:) = round(rand(1,dnaLength)); % dna with word length = maxCities
+    %     % dna stored by (i,j), where i = chromosome (entire thing), j = alele (bit)
+    %     clc
+    %     fprintf('\n')
+    %     fprintf('Generating %i more population...\n',initPopSize-i)
+    % end
+    % popGenTime = formatTime(toc);
+    % fprintf('Population generated in %s\n',popGenTime)
+    %
+    % dnabi;
+    %
+    % % convert DNA into number for pathing
+    % tic
+    % fprintf('Converting genes to path order...\n')
+    % for k = 1:initPopSize           % population
+    %     for j = 1:maxCities         % chromosome
+    %         for i = 1:wordLength    % word
+    %             temp(i) = dnabi(k, i+((j*wordLength)-wordLength) );
+    %         end
+    %         gaVisitOrder(k,j) = bi2de(flip(temp)); % flip so the lsb is the rightmost bit
+    %         clear temp;
+    %     end
+    %     clc
+    %     fprintf('Population generated in %s\n',popGenTime)
+    %     fprintf('Generating %i more genes paths...\n',initPopSize-k)
+    %
+    % end
+    %
+    % fprintf('Path order generated in %s\n',formatTime(toc))
+    %
+    % gaVisitOrder;
+    
+    % gaVisitOrder = gaVisitOrder+1; % how to add 1 for route calculation
+    
+    % --- wipe out all invalid genes
+    
+    % Determine if rows have duplicate entries (and are thus invalid)
+    % uniqueEntries = 0;
+    % for i = 1:initPopSize
+    %     a = gaVisitOrder(i:i,:);
+    %     if length(a) == length(unique(a))
+    %         %fprintf('%i: unique\n',i)
+    %         uniqueEntries = uniqueEntries + 1;
+    %     else
+    %         %fprintf('%i: not unique\n',i)
+    %     end
+    % end
+    %
+    % uniqueRatio = uniqueEntries / initPopSize;
+    %
+    % fprintf('%i valid chromosomes: %.2f%%',uniqueEntries, uniqueRatio*100)
 end
-
 
 if outputResults
     fprintf('\nTravelling done!\n')
@@ -497,5 +538,29 @@ if outputResults
     fprintf(1, 'Time |\t%s\t\t%s\t\t%s\n', bf_time, nn_time, ga_time)
     fprintf('\n')
     fprintf('NN algorithm path is %.2fx (%.2f%%) longer and %.2fx computationally faster.\n',nn_distance/bf_distance, (abs(1-(nn_distance/bf_distance)))*100, o_bf/o_nn)
-    
+end
+
+% Functions
+function t=formatTime(secs);
+% Input seconds, output formatted '_h_m_s'
+
+if secs == 0
+    t=sprintf('(no time available)');
+    return
+elseif secs < 1
+    t=sprintf('<1s');
+    return
+else
+    hours = 0;
+    minutes = 0;
+    seconds = 0;
+    minutes = floor(secs / 60);
+    seconds = rem(secs, 60);
+    if minutes > 60
+        hours = floor(minutes / 60);
+        minutes = minutes - (hours*60);
+    end
+    t=sprintf('%ih%im%.0fs',hours,minutes,seconds);
+    return
+end
 end
