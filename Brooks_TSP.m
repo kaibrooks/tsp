@@ -33,21 +33,27 @@ bf = 0;                   % bruteforce algorithm
 nn = 0;                   % nearest-neighbor algorithm
 gena = 1;                 % genetic algorithm
 
+% sub-algorithms
+gaRandomCrossover = 0;    % random crossover variant
+gaOrderedCrossover = 1;   % ordered crossover variant
+
 % --- Advanced options and generator settings -----------------------------
 
 outputResults = 0;      % (default 1) shows analysis at completion
 
-selectionFactor = 2;    % (default 2) fractional number of members to select each epoch (eg: 3 = 1/3 of members)
+gaSelectionFactor = 2;    % (default 2) fractional number of members to select each epoch (eg: 3 = 1/3 of members)
+gaInitPopSize = 12;     % (default ???) population for genetic algorithm
+
+
 
 bfTickSize = 10000;     % (default 10000) tick size for timing BF algorithm. Higher numbers = more accuracy, slower to display estimate
-gaInitPopSize = 10;     % (default ???) population for genetic algorithm
 
 minLoc = 1;             % (default 1) minimum coordinate to generate for city locations
 maxLoc = 100;           % (default 100) maximum coordinate to generate for city locations
 plotMarkerSize = 10;    % (default 10) size of markers on map
 showLabels = 1;         % (default 1) display city numbers on plot
 
-verbose = 1;            % outputs things, maybe
+verbose = 0;            % outputs things, maybe
 attempts = 100;         % number of attempts to bruteforce the solution before giving up
 maxCpuTime = 100;       % max loops various functions will use before giving up and moving on
 
@@ -385,8 +391,6 @@ if gena
     gaVisitOrder = flip(rot90(gaVisitOrder)); % rearrange for visitation reasons
     gaVisitOrder = [gaVisitOrder;arr];
     
-    
-    
     % dont add remaining city, just go back to it and let the ga sort it out?
     
     % calculate lengths of each option
@@ -437,16 +441,16 @@ if gena
     end % end of loop
     
     % normalize values for selection process (vector sum = 1)
-    gaVisitOrder
-    gaDistances
+    %gaVisitOrder
+    %gaDistances
     gaFitness = gaDistances ./ norm(gaDistances,1);
     preMean = mean(gaFitness);
-    gaFitness
+    %gaFitness
     
     
-    % select members
+    % ** select members
     selected = zeros(1,gaInitPopSize);
-    while sum(selected) < (gaInitPopSize/selectionFactor) % run until it selects 1/selectionFactor of the members
+    while sum(selected) < (gaInitPopSize/gaSelectionFactor) % run until it selects 1/selectionFactor of the members
         a = rand();
         for i = 1:gaInitPopSize;
             a = a - gaFitness(i);
@@ -460,20 +464,99 @@ if gena
         end
     end
     
-    % get selected mean, for statistical reasons
+    % get parents chromosomes
     tempMean = 0;
+    k = 0;
     for i = 1:gaInitPopSize
         if gaFitness(i)
-            tempMean(i) = gaFitness(i);
+            k = k + 1;     % write to the correct indexes to prevent zero values
+            gaParentChrom(:,k) = gaVisitOrder(:,i); % write parents chromosomes for use in breeding
+            tempMean(k) = gaFitness(i); % capture mean for statistical reasons 
         end
     end
-    tempMean = tempMean(tempMean ~= 0); % remove zeroes, only mean
-    
     
     postMean = mean(tempMean(tempMean ~= 0));
-    fprintf('Mean %.4f -> %.4f (%.4f change)\n', preMean, postMean, postMean/preMean)
+    fprintf('Mean %.4f -> %.4f (%.6f change)\n', preMean, postMean, postMean/preMean)
+    
+    % breed new population
+    %for j = 1:gaInitPopSize/4
+    %gaParentChrom
+    popNeeded = gaInitPopSize;
+    k = 0; % indexing fix
+    hit = 0;
+    miss = 0;
+    
+    % random swap subalgorithm
+    if gaRandomCrossover
+        while popNeeded > 0
+            
+            for i = 2:maxCities   % = 2:n because the start and end cities never change
+                parenta = gaParentChrom(i,1);
+                parentb = gaParentChrom(i,2);
+                
+                if round(rand) == 1
+                    newMember(i) = parenta;
+                else
+                    newMember(i) = parentb;
+                end
+                
+                if verbose, fprintf('Mix %i and %i -> %i\n' ,parenta,parentb,newMember(i)), end
+            end
+            
+            if length(unique(newMember)) == length(newMember)
+                k=k+1;
+                popNeeded = popNeeded -1;
+                newPop(k,:) = newMember;
+                hit = hit+1;
+            else
+                miss = miss+1;
+            end
+            
+        end
+        
+        newPop
+        newPop = unique(newPop,'rows')
+        
+        hit
+        miss
+        
+    end
     
     
+%     parenta = gaParentChrom(i,1);
+%     parentb = gaParentChrom(i,2);
+%     
+if gaOrderedCrossover
+    k = 0;
+    i = 0;
+    for j = 1:1%gaInitPopSize/4
+        crossoverPoint = randi([2 length(gaParentChrom)-1]) % ignore first and last entries since those are start/loop paths
+        gaParentChrom
+        child1 = gaParentChrom(1:crossoverPoint,j) %,j
+        for i = 2:length(gaParentChrom)
+            % add unique elements from second parent one-by-one
+            if ~ismember(gaParentChrom(i, j+1),child1) % if _, is in ,_ -- indexed by down, right
+                fprintf('adding %i\n',gaParentChrom(i, j+1))
+                
+                %gaParentChrom(i, j+1) = child2(k);
+                %if length(child2) > 8,break,end
+            end
+            
+        end
+%        child2
+        %child2 = gaParentChrom(crossoverPoint+1:length(gaParentChrom),j+1); %,j+1
+        
+        %newChild = [child1;child2];
+        %newPop(j,:) = newChild;
+    
+    end
+end
+
+    % select parents
+    %parenta = 
+    %parentb = 
+    
+   
     % for i = 1:initPopSize
     %     dnabi(i,:) = round(rand(1,dnaLength)); % dna with word length = maxCities
     %     % dna stored by (i,j), where i = chromosome (entire thing), j = alele (bit)
