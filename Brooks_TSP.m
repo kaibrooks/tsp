@@ -44,8 +44,8 @@ outputResults = 0;      % (default 1) shows analysis at completion
 
 gaSelectionFactor = 2;  % (default 2) fractional number of members to select each epoch (eg: 3 = 1/3 of members)
 gaInitPopSize = 120;    % (default ???, min 16) population for genetic algorithm
-gaMutationRate = 0.01;   % (default) mutate this portion of the population (0.01 = 1%)
-
+gaMutationRate = 0.01;   % (default 0.01) mutate this portion of the population (0.01 = 1%)
+gaRuns = 1000;         % (default ???) number of times ga generates new pop
 
 bfTickSize = 10000;     % (default 10000) tick size for timing BF algorithm. Higher numbers = more accuracy, slower to display estimate
 
@@ -396,247 +396,249 @@ if gena
     
     % dont add remaining city, just go back to it and let the ga sort it out?
     
-    % calculate lengths of each option
-    for j=1:gaInitPopSize
-        o_ga = o_ga + 1;
+    for gaGeneration=1:gaRuns
         
-        if j==1,tic,end % start the clock on 2
-        
-        for i=1:maxCities % if -1 because we loop back around instead of indexing the path back to start
+        % calculate lengths of each option
+        for j=1:gaInitPopSize
             o_ga = o_ga + 1;
             
-            a = [cities(gaVisitOrder(i,j),1),cities(gaVisitOrder(i,j),2)];
-            b = [cities(gaVisitOrder(i+1,j),1),cities(gaVisitOrder(i+1,j),2)];
+            if j==1,tic,end % start the clock on 2
             
-            checkDistance = [a;b]; % select two points
-            distance = pdist(checkDistance,'euclidean');   % find distance between them
-            %distance = floor(distance); % truncate
-            totalDist = totalDist + distance;
-            
-            gaSegmentDistances(i,j) = distance;
-            
-        end
-        
-        % timing
-        %         if j==bfTickSize
-        %             timing = toc;
-        %             bfEstimatedTime = timing*(length(bfVisitOrder)/bfTickSize) % timing*((length(bfVisitOrder)-bfTickSize)/bfTickSize) for 'time remaining as of this timing'
-        %             bfTimeTicks = length(bfVisitOrder)/bfTickSize;
-        %         end
-        
-        gaDistances(j) = totalDist; % store the total path length
-        totalDist = 0;              % reset for the next run
-        
-        % Output running information
-        %         clc
-        %         fprintf('Starting BF for n=%i, O(n!)=%i \n',maxCities, bf_omax)
-        %
-        %         if length(bfVisitOrder) > bfTickSize % only display if enough data to estimate
-        %             if bfEstimatedTime > 0
-        %                 fprintf('Estimated runtime: %s\n',formatTime(bfEstimatedTime))
-        %             else
-        %                 fprintf('Estimated runtime: (Sampling %i more times..)\n',bfTickSize-j)
-        %             end
-        %         end
-        %         fprintf('Current runtime  : %s\n',formatTime(toc))
-        %         fprintf('Computing optimal route... %.2f%% \n', (o_bf / bf_omax) * 100)
-        
-    end % end of loop
-    
-    % normalize values for selection process (vector sum = 1)
-    if verbose, gaVisitOrder, end
-    if verbose, gaDistances, end
-    gaFitness = gaDistances ./ norm(gaDistances,1);
-    preMean = mean(gaFitness);
-    if verbose, gaFitness, end
-    
-    
-    % ** select members
-    selected = zeros(1,gaInitPopSize);
-    while sum(selected) < (gaInitPopSize/gaSelectionFactor) % run until it selects 1/selectionFactor of the members
-        a = rand();
-        for i = 1:gaInitPopSize;
-            a = a - gaFitness(i);
-            %fprintf('%.4f - %.4f\n',a,gaFitness(i))
-            if a < 0
-                %fprintf('Selected:  %i\n',i)
-                gaFitness(i) = 0;
-                selected(i) = 1;
-                break
-            end
-        end
-    end
-    
-    % get parents chromosomes
-    tempMean = 0;
-    k = 0;
-    for i = 1:gaInitPopSize
-        if gaFitness(i)
-            k = k + 1;     % write to the correct indexes to prevent zero values
-            gaParentChrom(:,k) = gaVisitOrder(:,i); % write parents chromosomes for use in breeding
-            tempMean(k) = gaFitness(i); % capture mean for statistical reasons
-        end
-    end
-    
-    postMean = mean(tempMean(tempMean ~= 0));
-    fprintf('Mean %.4f -> %.4f (%.6f change)\n', preMean, postMean, postMean/preMean)
-    
-    % breed new population
-    %for j = 1:gaInitPopSize/4
-    %gaParentChrom
-    popNeeded = gaInitPopSize;
-    k = 0; % indexing fix
-    hit = 0;
-    miss = 0;
-    
-    % random swap subalgorithm
-    if gaRandomCrossover
-        while popNeeded > 0
-            
-            for i = 2:maxCities   % = 2:n because the start and end cities never change
-                parenta = gaParentChrom(i,1);
-                parentb = gaParentChrom(i,2);
+            for i=1:maxCities % if -1 because we loop back around instead of indexing the path back to start
+                o_ga = o_ga + 1;
                 
-                if round(rand) == 1
-                    newMember(i) = parenta;
-                else
-                    newMember(i) = parentb;
+                a = [cities(gaVisitOrder(i,j),1),cities(gaVisitOrder(i,j),2)];
+                b = [cities(gaVisitOrder(i+1,j),1),cities(gaVisitOrder(i+1,j),2)];
+                
+                checkDistance = [a;b]; % select two points
+                distance = pdist(checkDistance,'euclidean');   % find distance between them
+                %distance = floor(distance); % truncate
+                totalDist = totalDist + distance;
+                
+                gaSegmentDistances(i,j) = distance;
+                
+            end
+            
+            % timing
+            %         if j==bfTickSize
+            %             timing = toc;
+            %             bfEstimatedTime = timing*(length(bfVisitOrder)/bfTickSize) % timing*((length(bfVisitOrder)-bfTickSize)/bfTickSize) for 'time remaining as of this timing'
+            %             bfTimeTicks = length(bfVisitOrder)/bfTickSize;
+            %         end
+            
+            gaDistances(j) = totalDist; % store the total path length
+            totalDist = 0;              % reset for the next run
+            
+            % Output running information
+            %         clc
+            %         fprintf('Starting BF for n=%i, O(n!)=%i \n',maxCities, bf_omax)
+            %
+            %         if length(bfVisitOrder) > bfTickSize % only display if enough data to estimate
+            %             if bfEstimatedTime > 0
+            %                 fprintf('Estimated runtime: %s\n',formatTime(bfEstimatedTime))
+            %             else
+            %                 fprintf('Estimated runtime: (Sampling %i more times..)\n',bfTickSize-j)
+            %             end
+            %         end
+            %         fprintf('Current runtime  : %s\n',formatTime(toc))
+            %         fprintf('Computing optimal route... %.2f%% \n', (o_bf / bf_omax) * 100)
+            
+        end % end of loop
+        
+        % normalize values for selection process (vector sum = 1)
+        if verbose, gaVisitOrder, end
+        if verbose, gaDistances, end
+        gaFitness = gaDistances ./ norm(gaDistances,1);
+        preMean = mean(gaFitness);
+        if verbose, gaFitness, end
+        
+        
+        % ** select members
+        selected = zeros(1,gaInitPopSize);
+        while sum(selected) < (gaInitPopSize/gaSelectionFactor) % run until it selects 1/selectionFactor of the members
+            a = rand();
+            for i = 1:gaInitPopSize;
+                a = a - gaFitness(i);
+                %fprintf('%.4f - %.4f\n',a,gaFitness(i))
+                if a < 0
+                    %fprintf('Selected:  %i\n',i)
+                    gaFitness(i) = 0;
+                    selected(i) = 1;
+                    break
                 end
-                
-                if verbose, fprintf('Mix %i and %i -> %i\n' ,parenta,parentb,newMember(i)), end
             end
-            
-            if length(unique(newMember)) == length(newMember)
-                k=k+1;
-                popNeeded = popNeeded -1;
-                newPop(k,:) = newMember;
-                hit = hit+1;
-            else
-                miss = miss+1;
-            end
-            
         end
         
-        newPop
-        newPop = unique(newPop,'rows')
+        % get parents chromosomes
+        tempMean = 0;
+        k = 0;
+        for i = 1:gaInitPopSize
+            if gaFitness(i)
+                k = k + 1;     % write to the correct indexes to prevent zero values
+                gaParentChrom(:,k) = gaVisitOrder(:,i); % write parents chromosomes for use in breeding
+                tempMean(k) = gaFitness(i); % capture mean for statistical reasons
+            end
+        end
         
-        hit
-        miss
+        postMean = mean(tempMean(tempMean ~= 0));
+        fprintf('%i \t Mean %.8f -> %.8f (%.8f change)\n',gaGeneration, preMean, postMean, postMean/preMean)
         
-    end
-    
-    
-    %     parenta = gaParentChrom(i,1);
-    %     parentb = gaParentChrom(i,2);
-    %
-    if gaOrderedCrossover
-        gaVisitOrder = zeros(9,1); % clear visit order for new writing
-        oldCrossoverPoint = 0;
-        crossoverPoint = 0;
-        
-        [parentHeight parentLength] = size(gaParentChrom);
-        
+        % breed new population
+        %for j = 1:gaInitPopSize/4
         %gaParentChrom
+        popNeeded = gaInitPopSize;
+        k = 0; % indexing fix
+        hit = 0;
+        miss = 0;
         
-        for k=1:30 %while size(newPop,2) < gaInitPopSize ??? why 1:30? fix this ending index
-            
-            while oldCrossoverPoint == crossoverPoint % loop until new crossover point from last time
-                crossoverPoint = randi([2 parentHeight-2]); % ignore first and last entries since those are start/loop paths
-                if verbose, crossoverPoint, end
-            end
-            
-            for j = 1:2:parentHeight-1
-                %clear childa, clear childb;
+        % random swap subalgorithm
+        if gaRandomCrossover
+            while popNeeded > 0
                 
-                childPart1 = gaParentChrom(1:crossoverPoint,j); % first half of chromosome
-                tempChild = gaParentChrom(:,j+1);               % temp store entire other parent
-                
-                % check second parent gene-by-gene, add non-duplicates in order of appearance
-                for i = 2:length(tempChild)
-                    if verbose, fprintf('Checking for duplicate alele: %i\n',tempChild(i)), end
-                    if ~ismember(tempChild(i),childPart1)
-                        if verbose, fprintf('Adding %i to chromosome\n',tempChild(i)), end
-                        childPart2(i,1) = tempChild(i);
+                for i = 2:maxCities   % = 2:n because the start and end cities never change
+                    parenta = gaParentChrom(i,1);
+                    parentb = gaParentChrom(i,2);
+                    
+                    if round(rand) == 1
+                        newMember(i) = parenta;
+                    else
+                        newMember(i) = parentb;
                     end
+                    
+                    if verbose, fprintf('Mix %i and %i -> %i\n' ,parenta,parentb,newMember(i)), end
                 end
                 
-                childPart2 = childPart2(childPart2 ~= 0);
-                
-                %childPart1
-                %childPart2
-                
-                newChild = [childPart1;childPart2;childPart1(1)];
-                
-                newPop(:,ceil(j/gaSelectionFactor)) = newChild;         % ceil to remove every other column of zeroes
-                
-                clear childPart*;          % flush old data
-                clear temp*;
+                if length(unique(newMember)) == length(newMember)
+                    k=k+1;
+                    popNeeded = popNeeded -1;
+                    newPop(k,:) = newMember;
+                    hit = hit+1;
+                else
+                    miss = miss+1;
+                end
                 
             end
             
-            % write new visit order
-            if sum(gaVisitOrder(:,1)) == 0  % if first time written
-                gaVisitOrder = newPop;
-            else
-                gaVisitOrder = cat(2,gaVisitOrder,newPop);
+            newPop
+            newPop = unique(newPop,'rows')
+            
+            hit
+            miss
+            
+        end
+        
+        
+        %     parenta = gaParentChrom(i,1);
+        %     parentb = gaParentChrom(i,2);
+        %
+        if gaOrderedCrossover
+            gaVisitOrder = zeros(9,1); % clear visit order for new writing
+            oldCrossoverPoint = 0;
+            crossoverPoint = 0;
+            
+            [parentHeight parentLength] = size(gaParentChrom);
+            
+            %gaParentChrom
+            
+            for k=1:30 %while size(newPop,2) < gaInitPopSize ??? why 1:30? fix this ending index
+                
+                while oldCrossoverPoint == crossoverPoint % loop until new crossover point from last time
+                    crossoverPoint = randi([2 parentHeight-2]); % ignore first and last entries since those are start/loop paths
+                    if verbose, crossoverPoint, end
+                end
+                
+                for j = 1:2:parentHeight-1
+                    %clear childa, clear childb;
+                    
+                    childPart1 = gaParentChrom(1:crossoverPoint,j); % first half of chromosome
+                    tempChild = gaParentChrom(:,j+1);               % temp store entire other parent
+                    
+                    % check second parent gene-by-gene, add non-duplicates in order of appearance
+                    for i = 2:length(tempChild)
+                        if verbose, fprintf('Checking for duplicate alele: %i\n',tempChild(i)), end
+                        if ~ismember(tempChild(i),childPart1)
+                            if verbose, fprintf('Adding %i to chromosome\n',tempChild(i)), end
+                            childPart2(i,1) = tempChild(i);
+                        end
+                    end
+                    
+                    childPart2 = childPart2(childPart2 ~= 0);
+                    
+                    %childPart1
+                    %childPart2
+                    
+                    newChild = [childPart1;childPart2;childPart1(1)];
+                    
+                    newPop(:,ceil(j/gaSelectionFactor)) = newChild;         % ceil to remove every other column of zeroes
+                    
+                    clear childPart*;          % flush old data
+                    clear temp*;
+                    
+                end
+                
+                % write new visit order
+                if sum(gaVisitOrder(:,1)) == 0  % if first time written
+                    gaVisitOrder = newPop;
+                else
+                    gaVisitOrder = cat(2,gaVisitOrder,newPop);
+                end
+                oldCrossoverPoint = crossoverPoint; % store this to ensure a different point next time
             end
-            oldCrossoverPoint = crossoverPoint; % store this to ensure a different point next time
-        end
-        
-        %gaVisitOrder
-        
-    end % end of ordered crossover algorithm
-    
-    % *** mutate (should be a function, args of mutationType, mutationRate, initPopSize...)
-    
-    % mutations: random reset, single swap, selection scramble, selection inversion
-    gaMutationType = 1;   % TODO put this in the header
-    
-    
-    mutateNum = ceil(gaInitPopSize * gaMutationRate); % number of individuals to mutate
-    
-    % generate chromisome indexes to mutate
-    for i = 1:mutateNum %TODO unique numbers each time
-        mutIndex(i) = randi(gaInitPopSize);    % member to mutate
-        childMut(:,i) = gaVisitOrder(:,mutIndex(i));
-    end
-    
-    if gaMutationType == 1 % random reset
-        
-        childMut(end,:) = [];   % delete loopback entry so array is unique
-        
-        for i=1:mutateNum
             
-            childMut(:,i) = randperm(maxCities);
+            %gaVisitOrder
             
-            % shift matrix so starting city is correct
-            k = find(childMut(:,i) == startingCity);
-            childMut(:,i) = circshift(childMut(:,i), (maxCities+1) - k);
+        end % end of ordered crossover algorithm
+        
+        % *** mutate (should be a function, args of mutationType, mutationRate, initPopSize...)
+        
+        % mutations: random reset, single swap, selection scramble, selection inversion
+        gaMutationType = 1;   % TODO put this in the header
+        
+        
+        mutateNum = ceil(gaInitPopSize * gaMutationRate); % number of individuals to mutate
+        
+        % generate chromisome indexes to mutate
+        for i = 1:mutateNum %TODO unique numbers each time
+            mutIndex(i) = randi(gaInitPopSize);    % member to mutate
+            childMut(:,i) = gaVisitOrder(:,mutIndex(i));
+        end
+        
+        if gaMutationType == 1 % random reset
             
-        end
+            childMut(end,:) = [];   % delete loopback entry so array is unique
+            
+            for i=1:mutateNum
+                
+                childMut(:,i) = randperm(maxCities);
+                
+                % shift matrix so starting city is correct
+                k = find(childMut(:,i) == startingCity);
+                childMut(:,i) = circshift(childMut(:,i), (maxCities+1) - k);
+                
+            end
+            
+            % copy first entry and place it on back (path loopback)
+            arr = ones(1,mutateNum);   % array to write entire row at once
+            arr = arr * startingCity;
+            childMut(end+1,:) = arr;    % append new entry
+            
+            if verbose
+                fprintf('New mutation (displayed concatenated): [');
+                fprintf('%g ', childMut);
+                fprintf(']\n');
+            end
+            
+            % write mutations back into population
+            for i=1:mutateNum
+                gaVisitOrder(:,mutIndex(i)) = childMut(:,i);
+            end
+            
+            
+        end %end random reset algorithm
         
-        % copy first entry and place it on back (path loopback)
-        arr = ones(1,mutateNum);   % array to write entire row at once
-        arr = arr * startingCity;
-        childMut(end+1,:) = arr;    % append new entry
-        
-        if verbose
-            fprintf('New mutation (displayed concatenated): [');
-            fprintf('%g ', childMut);
-            fprintf(']\n');
-        end
-        
-        % write mutations back into population
-        for i=1:mutateNum
-            gaVisitOrder(:,mutIndex(i)) = childMut(:,i);
-        end
-        
-        
-    end %end random reset algorithm
+    end % end gaRuns
     
-    
-    
-    
+    % plot highest fitness
     
     
     
