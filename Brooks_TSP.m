@@ -533,16 +533,15 @@ if gaOrderedCrossover
     [tempLength tempHeight] = size(gaParentChrom);
     crossoverPoint = randi([2 length(gaParentChrom)-2]) % ignore first and last entries since those are start/loop paths
     gaParentChrom
-    for j = 1:1%2:tempHeight-1
-        clear childa, clear childb;
+    for j = 1:2:tempHeight-1
+        %clear childa, clear childb;
         
+        childPart1 = gaParentChrom(1:crossoverPoint,j); % first half of chromosome
+        tempChild = gaParentChrom(:,j+1);               % temp store entire other parent
         
-        
-        childPart1 = gaParentChrom(1:crossoverPoint,j); %,j
-        tempChild = gaParentChrom(:,j+1);
-        
+        % check second parent gene-by-gene, add non-duplicates in order of appearance
         for i = 2:length(tempChild)
-            if verbose, fprintf('Checking for duplicate chromosomes: %i\n',tempChild(i)), end
+            if verbose, fprintf('Checking for duplicate alele: %i\n',tempChild(i)), end
             if ~ismember(tempChild(i),childPart1)
                 k=k+1;
                 if verbose, fprintf('Adding %i to chromosome\n',tempChild(i)), end
@@ -554,34 +553,16 @@ if gaOrderedCrossover
         %childPart1
         %childPart2
         
-        newChild = [childPart1;childPart2;childPart1(1)]
+        newChild = [childPart1;childPart2;childPart1(1)];
         
+        newPop(:,ceil(j/gaSelectionFactor)) = newChild;         % ceil to remove every other column of zeroes
         
-%         for i = 2:length(gaParentChrom)
-%             % add unique elements from second parent one-by-one
-%             %if ~ismember(gaParentChrom(i, j+1),childa) % if _, is in ,_ -- indexed by down, right
-%                 fprintf('Adding %i to chromosome\n',gaParentChrom(i, j+1)) 
-%                 %k=k+1;
-%                 childb(i) = gaParentChrom(i, j+1);
-%                 
-%             %end 
-%   
-%         end
-        
-%childPart1
-%tempChild
-
-        %childb = rot90(childb); % rotate for concatenation
-        newChild = [childPart1; tempChild; childPart1(1)]; % concatenate parents chromosomes, plus starting city at the end
-        newChild = newChild(newChild ~= 0);     % wipe excess zeroes
-        newPop(:,ceil(j/2)) = newChild;         % ceil to remove every other column of zeroes
-        
-        %gaParentChrom(:,k)
+        clear childPart*;          % flush old data
+        clear temp*;
         
     end
     
-    %newPop = newPop(newPop ~= 0);
-    %newPop
+    newPop
     
 end % end of algorithm
 
