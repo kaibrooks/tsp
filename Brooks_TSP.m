@@ -14,8 +14,8 @@ close all
 clear all
 format
 
-% --- Main options --------------------------------------------------------
-
+%% --- Options ------------------------------------------------------------
+%  --- Main Options -------------------------------------------------------
 maxCities = 8;          % (default 9) number of cities to visit, this is the 'n'
 % decrease this if it hurts the hardware
 gifOutput = 0;          % enables gif output and generation, slows rendering
@@ -42,9 +42,9 @@ gaOrderedCrossover = 1;   % ordered crossover variant
 
 outputResults = 0;      % (default 1) shows analysis at completion
 
-gaSelectionFactor = 2;    % (default 2) fractional number of members to select each epoch (eg: 3 = 1/3 of members)
-gaInitPopSize = 12;     % (default ???) population for genetic algorithm
-
+gaSelectionFactor = 2;  % (default 2) fractional number of members to select each epoch (eg: 3 = 1/3 of members)
+gaInitPopSize = 120;    % (default ???, min 16) population for genetic algorithm
+gaMutationRate = 0.01;   % (default) mutate this portion of the population (0.01 = 1%)
 
 
 bfTickSize = 10000;     % (default 10000) tick size for timing BF algorithm. Higher numbers = more accuracy, slower to display estimate
@@ -76,7 +76,7 @@ ga_time = 0;
 nnSecs = 0;
 bruteforce_minimum_vec = 0;
 
-% --- Program start -------------------------------------------------------
+%% --- Program start ------------------------------------------------------
 
 % Override the rng if using the precomputed seed
 if twelveCitySeed
@@ -136,7 +136,8 @@ txt = '    \leftarrow Start';
 text(cities(startingCity,1),cities(startingCity,2),txt)
 
 % --- Algorithms ----------------------------------------------------------
-% Bruteforce algorithm (bf)
+
+%% Bruteforce algorithm (bf)
 if bf
     fprintf('Generating bf pathing matrix...\n')
     % Create gigantic bruteforce path matrix: o(n!)
@@ -252,7 +253,7 @@ end
 totalDist = 0;
 minDist = 0;
 
-% Nearest Neighbor Algorithm
+%% Nearest Neighbor Algorithm
 if nn
     fprintf('Computing nearest neighbor route...\n')
     for j = 2:maxCities
@@ -369,7 +370,7 @@ end
 totalDist = 0;
 minDist = 0;
 
-% genetic algorithm
+%% Genetic Algorithm
 if gena
     % create genes
     linearPath = [1:maxCities];
@@ -532,13 +533,14 @@ if gena
         oldCrossoverPoint = 0;
         crossoverPoint = 0;
         
-        [parentLength parentHeight] = size(gaParentChrom);
+        [parentHeight parentLength] = size(gaParentChrom);
         
         %gaParentChrom
-        for k = 1:gaSelectionFactor^2
+        
+        for k=1:30 %while size(newPop,2) < gaInitPopSize ??? why 1:30? fix this ending index
             
             while oldCrossoverPoint == crossoverPoint % loop until new crossover point from last time
-                crossoverPoint = randi([2 length(gaParentChrom)-2]); % ignore first and last entries since those are start/loop paths
+                crossoverPoint = randi([2 parentHeight-2]); % ignore first and last entries since those are start/loop paths
                 if verbose, crossoverPoint, end
             end
             
@@ -556,6 +558,7 @@ if gena
                         childPart2(i,1) = tempChild(i);
                     end
                 end
+                
                 childPart2 = childPart2(childPart2 ~= 0);
                 
                 %childPart1
@@ -579,76 +582,30 @@ if gena
            oldCrossoverPoint = crossoverPoint; % store this to ensure a different point next time
         end
         
-        gaVisitOrder
+        %gaVisitOrder
           
     end % end of ordered crossover algorithm
     
     % *** mutate
+    mutateNum = ceil(gaInitPopSize * gaMutationRate); % number of individuals to mutate
+    
+    mutIndex = randi(gaInitPopSize);    % member to mutate
+    
+    % mutations: random reset, single swap, selection scramble, selection inversion
+    
+    if mutationType == 1 % random reset
+    
+    end
     
     
     
     
     
     
-    % select parents
-    %parenta =
-    %parentb =
     
-    
-    % for i = 1:initPopSize
-    %     dnabi(i,:) = round(rand(1,dnaLength)); % dna with word length = maxCities
-    %     % dna stored by (i,j), where i = chromosome (entire thing), j = alele (bit)
-    %     clc
-    %     fprintf('\n')
-    %     fprintf('Generating %i more population...\n',initPopSize-i)
-    % end
-    % popGenTime = formatTime(toc);
-    % fprintf('Population generated in %s\n',popGenTime)
-    %
-    % dnabi;
-    %
-    % % convert DNA into number for pathing
-    % tic
-    % fprintf('Converting genes to path order...\n')
-    % for k = 1:initPopSize           % population
-    %     for j = 1:maxCities         % chromosome
-    %         for i = 1:wordLength    % word
-    %             temp(i) = dnabi(k, i+((j*wordLength)-wordLength) );
-    %         end
-    %         gaVisitOrder(k,j) = bi2de(flip(temp)); % flip so the lsb is the rightmost bit
-    %         clear temp;
-    %     end
-    %     clc
-    %     fprintf('Population generated in %s\n',popGenTime)
-    %     fprintf('Generating %i more genes paths...\n',initPopSize-k)
-    %
-    % end
-    %
-    % fprintf('Path order generated in %s\n',formatTime(toc))
-    %
-    % gaVisitOrder;
-    
-    % gaVisitOrder = gaVisitOrder+1; % how to add 1 for route calculation
-    
-    % --- wipe out all invalid genes
-    
-    % Determine if rows have duplicate entries (and are thus invalid)
-    % uniqueEntries = 0;
-    % for i = 1:initPopSize
-    %     a = gaVisitOrder(i:i,:);
-    %     if length(a) == length(unique(a))
-    %         %fprintf('%i: unique\n',i)
-    %         uniqueEntries = uniqueEntries + 1;
-    %     else
-    %         %fprintf('%i: not unique\n',i)
-    %     end
-    % end
-    %
-    % uniqueRatio = uniqueEntries / initPopSize;
-    %
-    % fprintf('%i valid chromosomes: %.2f%%',uniqueEntries, uniqueRatio*100)
 end % end of ga
 
+%% ---- Results and Analysis ----------------------------------------------
 if outputResults
     fprintf('\nTravelling done!\n')
     fprintf('------- Results -------\n')
@@ -661,7 +618,7 @@ if outputResults
     fprintf('NN algorithm path is %.2fx (%.2f%%) longer and %.2fx computationally faster.\n',nn_distance/bf_distance, (abs(1-(nn_distance/bf_distance)))*100, o_bf/o_nn)
 end
 
-% ----- Functions ---------------------------------------------------------
+%% ----- Functions --------------------------------------------------------
 function t=formatTime(secs);
 % Input seconds, output formatted '_h_m_s'
 
