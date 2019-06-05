@@ -16,7 +16,7 @@ format
 
 %% --- Options ------------------------------------------------------------
 %  --- Main Options -------------------------------------------------------
-maxCities = 8;          % (default 9) number of cities to visit, this is the 'n'
+maxCities = 9;          % (default 9) number of cities to visit, this is the 'n'
 % decrease this if it hurts the hardware
 gifOutput = 0;          % enables gif output and generation, slows rendering
 filename = 'tsp.gif';    % output filename for the gif
@@ -43,9 +43,10 @@ gaOrderedCrossover = 1;   % ordered crossover variant
 outputResults = 0;      % (default 1) shows analysis at completion
 
 gaSelectionFactor = 2;  % (default 2) fractional number of members to select each epoch (eg: 3 = 1/3 of members)
-gaInitPopSize = 120;    % (default ???, min 16) population for genetic algorithm
-gaMutationRate = 0.01;   % (default 0.01) mutate this portion of the population (0.01 = 1%)
-gaRuns = 1000;         % (default ???) number of times ga generates new pop
+gaInitPopSize = 30;     % (default 180, min 16) population for genetic algorithm
+gaMutationRate = 0.01;  % (default 0.01) mutate this portion of the population (0.01 = 1%)
+gaMaxGenerations = 500;           % (default ???) number of times ga generates new pop
+
 
 bfTickSize = 10000;     % (default 10000) tick size for timing BF algorithm. Higher numbers = more accuracy, slower to display estimate
 
@@ -372,6 +373,7 @@ minDist = 0;
 
 %% Genetic Algorithm
 if gena
+    gaFitnessMean = 0
     
     % create genes
     linearPath = [1:maxCities];
@@ -396,13 +398,13 @@ if gena
     
     % dont add remaining city, just go back to it and let the ga sort it out?
     
-    for gaGeneration=1:gaRuns
+    for gaGeneration=1:gaMaxGenerations
+        o_ga = o_ga + 1;
+        if gaGeneration==1,tic,end % start the clock
         
         % calculate lengths of each option
         for j=1:gaInitPopSize
             o_ga = o_ga + 1;
-            
-            if j==1,tic,end % start the clock on 2
             
             for i=1:maxCities % if -1 because we loop back around instead of indexing the path back to start
                 o_ga = o_ga + 1;
@@ -481,7 +483,17 @@ if gena
         end
         
         postMean = mean(tempMean(tempMean ~= 0));
-        fprintf('%i \t Mean %.8f -> %.8f (%.8f change)\n',gaGeneration, preMean, postMean, postMean/preMean)
+        %postMean
+        %t=t+1; % write correct index in gaFitnessMean;
+        gaFitnessMean(gaGeneration) = postMean;
+        if gaGeneration > 1
+            if verbose
+                fprintf('%i \t Mean %.8f -> %.8f (%.8f change)\n',gaGeneration, gaFitnessMean(gaGeneration-1), gaFitnessMean(gaGeneration), postMean/preMean)
+            else
+                clc
+                fprintf('Computing Genetic Algorithm... %.2f%%\n', (gaGeneration/gaMaxGenerations)*100)
+            end
+        end
         
         % breed new population
         %for j = 1:gaInitPopSize/4
@@ -636,11 +648,45 @@ if gena
             
         end %end random reset algorithm
         
-    end % end gaRuns
+    end % end gaMaxGenerations
     
-    % plot highest fitness
+    % plot highest fitness route, capture ga = totalDist
+     for i=1:maxCities
+        
+        [tempDistance gaMinIndex] = max(gaDistances);
+         
+        a = [cities(gaVisitOrder(i,gaMinIndex),1), cities(gaVisitOrder(i,gaMinIndex),2)];
+        b = [cities(gaVisitOrder(i+1,gaMinIndex),1), cities(gaVisitOrder(i+1,gaMinIndex),2)];
+        
+        x = [a(1), b(1)];
+        y = [a(2), b(2)];
+        plot(x,y,'m-','LineWidth',plotMarkerSize/8)
+        
+        
+        %bfVisitOrder(i:4,bfShortest) gives path
+        
+    end
     
     
+    % plot historical fitness
+    figure(2)
+    hold on
+    grid on
+    gaPlotX = [1:gaGeneration]; % make a linear axis for plotting
+    plot(gaPlotX,gaFitnessMean,'k.','MarkerSize',plotMarkerSize)
+    
+    %x = 1:10; 
+    %y1 = x + randn(1,10); 
+    %scatter(x,y1,25,'b','*') 
+    p = polyfit(gaPlotX,gaFitnessMean,1);
+    yfit = p(1)*gaPlotX+p(2);
+    plot(gaPlotX,yfit,'m-','MarkerSize',plotMarkerSize);
+    gaFitnessSlope = p(1);
+    xlabel('Generation')
+    ylabel('Fitness')
+    legend('Avg Generational Fitness',['Slope = ',num2str(gaFitnessSlope)])
+    title('Genetic Algorithm Performance')
+    %title(['Slope is ',num2str(gaFitnessSlope)])
     
 end % end of ga
 
