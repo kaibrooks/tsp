@@ -222,7 +222,7 @@ if bf
         
         x = [a(1), b(1)];
         y = [a(2), b(2)];
-        plot(x,y,'b--','LineWidth',plotMarkerSize/8)
+        plot(x,y,'b','LineWidth',plotMarkerSize/8)
         
         
         %bfVisitOrder(i:4,bfShortest) gives path
@@ -442,11 +442,11 @@ if gena
     end % end of loop
     
     % normalize values for selection process (vector sum = 1)
-    %gaVisitOrder
-    %gaDistances
+    if verbose, gaVisitOrder, end
+    if verbose, gaDistances, end
     gaFitness = gaDistances ./ norm(gaDistances,1);
     preMean = mean(gaFitness);
-    %gaFitness
+    if verbose, gaFitness, end
     
     
     % ** select members
@@ -472,7 +472,7 @@ if gena
         if gaFitness(i)
             k = k + 1;     % write to the correct indexes to prevent zero values
             gaParentChrom(:,k) = gaVisitOrder(:,i); % write parents chromosomes for use in breeding
-            tempMean(k) = gaFitness(i); % capture mean for statistical reasons 
+            tempMean(k) = gaFitness(i); % capture mean for statistical reasons
         end
     end
     
@@ -524,53 +524,77 @@ if gena
     end
     
     
-%     parenta = gaParentChrom(i,1);
-%     parentb = gaParentChrom(i,2);
-%     
-if gaOrderedCrossover
-    k = 0;
-    i = 0;
-    [tempLength tempHeight] = size(gaParentChrom);
-    crossoverPoint = randi([2 length(gaParentChrom)-2]) % ignore first and last entries since those are start/loop paths
-    gaParentChrom
-    for j = 1:2:tempHeight-1
-        %clear childa, clear childb;
+    %     parenta = gaParentChrom(i,1);
+    %     parentb = gaParentChrom(i,2);
+    %
+    if gaOrderedCrossover
+        gaVisitOrder = zeros(9,1); % clear visit order for new writing
+        oldCrossoverPoint = 0;
+        crossoverPoint = 0;
         
-        childPart1 = gaParentChrom(1:crossoverPoint,j); % first half of chromosome
-        tempChild = gaParentChrom(:,j+1);               % temp store entire other parent
+        [parentLength parentHeight] = size(gaParentChrom);
         
-        % check second parent gene-by-gene, add non-duplicates in order of appearance
-        for i = 2:length(tempChild)
-            if verbose, fprintf('Checking for duplicate alele: %i\n',tempChild(i)), end
-            if ~ismember(tempChild(i),childPart1)
-                k=k+1;
-                if verbose, fprintf('Adding %i to chromosome\n',tempChild(i)), end
-                childPart2(i,1) = tempChild(i);
+        %gaParentChrom
+        for k = 1:gaSelectionFactor^2
+            
+            while oldCrossoverPoint == crossoverPoint % loop until new crossover point from last time
+                crossoverPoint = randi([2 length(gaParentChrom)-2]); % ignore first and last entries since those are start/loop paths
+                if verbose, crossoverPoint, end
             end
+            
+            for j = 1:2:parentHeight-1
+                %clear childa, clear childb;
+                
+                childPart1 = gaParentChrom(1:crossoverPoint,j); % first half of chromosome
+                tempChild = gaParentChrom(:,j+1);               % temp store entire other parent
+                
+                % check second parent gene-by-gene, add non-duplicates in order of appearance
+                for i = 2:length(tempChild)
+                    if verbose, fprintf('Checking for duplicate alele: %i\n',tempChild(i)), end
+                    if ~ismember(tempChild(i),childPart1)
+                        if verbose, fprintf('Adding %i to chromosome\n',tempChild(i)), end
+                        childPart2(i,1) = tempChild(i);
+                    end
+                end
+                childPart2 = childPart2(childPart2 ~= 0);
+                
+                %childPart1
+                %childPart2
+                
+                newChild = [childPart1;childPart2;childPart1(1)];
+                
+                newPop(:,ceil(j/gaSelectionFactor)) = newChild;         % ceil to remove every other column of zeroes
+                
+                clear childPart*;          % flush old data
+                clear temp*;
+                
+            end
+            
+            % write new visit order
+            if sum(gaVisitOrder(:,1)) == 0  % if first time written
+                gaVisitOrder = newPop;
+            else
+                gaVisitOrder = cat(2,gaVisitOrder,newPop);
+            end
+           oldCrossoverPoint = crossoverPoint; % store this to ensure a different point next time
         end
-        childPart2 = childPart2(childPart2 ~= 0);
         
-        %childPart1
-        %childPart2
-        
-        newChild = [childPart1;childPart2;childPart1(1)];
-        
-        newPop(:,ceil(j/gaSelectionFactor)) = newChild;         % ceil to remove every other column of zeroes
-        
-        clear childPart*;          % flush old data
-        clear temp*;
-        
-    end
+        gaVisitOrder
+          
+    end % end of ordered crossover algorithm
     
-    newPop
+    % *** mutate
     
-end % end of algorithm
-
+    
+    
+    
+    
+    
     % select parents
-    %parenta = 
-    %parentb = 
+    %parenta =
+    %parentb =
     
-   
+    
     % for i = 1:initPopSize
     %     dnabi(i,:) = round(rand(1,dnaLength)); % dna with word length = maxCities
     %     % dna stored by (i,j), where i = chromosome (entire thing), j = alele (bit)
@@ -623,7 +647,7 @@ end % end of algorithm
     % uniqueRatio = uniqueEntries / initPopSize;
     %
     % fprintf('%i valid chromosomes: %.2f%%',uniqueEntries, uniqueRatio*100)
-end
+end % end of ga
 
 if outputResults
     fprintf('\nTravelling done!\n')
@@ -637,7 +661,7 @@ if outputResults
     fprintf('NN algorithm path is %.2fx (%.2f%%) longer and %.2fx computationally faster.\n',nn_distance/bf_distance, (abs(1-(nn_distance/bf_distance)))*100, o_bf/o_nn)
 end
 
-% Functions
+% ----- Functions ---------------------------------------------------------
 function t=formatTime(secs);
 % Input seconds, output formatted '_h_m_s'
 
