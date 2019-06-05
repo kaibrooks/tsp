@@ -1,5 +1,6 @@
 % TSP
 % Kai Brooks
+% github.com/kaibrooks
 % Jun 2019
 %
 % Solves the travelling salesman problem
@@ -529,28 +530,60 @@ if gena
 if gaOrderedCrossover
     k = 0;
     i = 0;
-    for j = 1:1%gaInitPopSize/4
-        crossoverPoint = randi([2 length(gaParentChrom)-1]) % ignore first and last entries since those are start/loop paths
-        gaParentChrom
-        child1 = gaParentChrom(1:crossoverPoint,j) %,j
-        for i = 2:length(gaParentChrom)
-            % add unique elements from second parent one-by-one
-            if ~ismember(gaParentChrom(i, j+1),child1) % if _, is in ,_ -- indexed by down, right
-                fprintf('adding %i\n',gaParentChrom(i, j+1))
-                
-                %gaParentChrom(i, j+1) = child2(k);
-                %if length(child2) > 8,break,end
-            end
-            
-        end
-%        child2
-        %child2 = gaParentChrom(crossoverPoint+1:length(gaParentChrom),j+1); %,j+1
+    [tempLength tempHeight] = size(gaParentChrom);
+    crossoverPoint = randi([2 length(gaParentChrom)-2]) % ignore first and last entries since those are start/loop paths
+    gaParentChrom
+    for j = 1:1%2:tempHeight-1
+        clear childa, clear childb;
         
-        %newChild = [child1;child2];
-        %newPop(j,:) = newChild;
-    
+        
+        
+        childPart1 = gaParentChrom(1:crossoverPoint,j); %,j
+        tempChild = gaParentChrom(:,j+1);
+        
+        for i = 2:length(tempChild)
+            if verbose, fprintf('Checking for duplicate chromosomes: %i\n',tempChild(i)), end
+            if ~ismember(tempChild(i),childPart1)
+                k=k+1;
+                if verbose, fprintf('Adding %i to chromosome\n',tempChild(i)), end
+                childPart2(i,1) = tempChild(i);
+            end
+        end
+        childPart2 = childPart2(childPart2 ~= 0);
+        
+        %childPart1
+        %childPart2
+        
+        newChild = [childPart1;childPart2;childPart1(1)]
+        
+        
+%         for i = 2:length(gaParentChrom)
+%             % add unique elements from second parent one-by-one
+%             %if ~ismember(gaParentChrom(i, j+1),childa) % if _, is in ,_ -- indexed by down, right
+%                 fprintf('Adding %i to chromosome\n',gaParentChrom(i, j+1)) 
+%                 %k=k+1;
+%                 childb(i) = gaParentChrom(i, j+1);
+%                 
+%             %end 
+%   
+%         end
+        
+%childPart1
+%tempChild
+
+        %childb = rot90(childb); % rotate for concatenation
+        newChild = [childPart1; tempChild; childPart1(1)]; % concatenate parents chromosomes, plus starting city at the end
+        newChild = newChild(newChild ~= 0);     % wipe excess zeroes
+        newPop(:,ceil(j/2)) = newChild;         % ceil to remove every other column of zeroes
+        
+        %gaParentChrom(:,k)
+        
     end
-end
+    
+    %newPop = newPop(newPop ~= 0);
+    %newPop
+    
+end % end of algorithm
 
     % select parents
     %parenta = 
