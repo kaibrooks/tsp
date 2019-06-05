@@ -372,6 +372,7 @@ minDist = 0;
 
 %% Genetic Algorithm
 if gena
+    
     % create genes
     linearPath = [1:maxCities];
     
@@ -579,23 +580,59 @@ if gena
             else
                 gaVisitOrder = cat(2,gaVisitOrder,newPop);
             end
-           oldCrossoverPoint = crossoverPoint; % store this to ensure a different point next time
+            oldCrossoverPoint = crossoverPoint; % store this to ensure a different point next time
         end
         
         %gaVisitOrder
-          
+        
     end % end of ordered crossover algorithm
     
-    % *** mutate
-    mutateNum = ceil(gaInitPopSize * gaMutationRate); % number of individuals to mutate
-    
-    mutIndex = randi(gaInitPopSize);    % member to mutate
+    % *** mutate (should be a function, args of mutationType, mutationRate, initPopSize...)
     
     % mutations: random reset, single swap, selection scramble, selection inversion
+    gaMutationType = 1;   % TODO put this in the header
     
-    if mutationType == 1 % random reset
     
+    mutateNum = ceil(gaInitPopSize * gaMutationRate); % number of individuals to mutate
+    
+    % generate chromisome indexes to mutate
+    for i = 1:mutateNum %TODO unique numbers each time
+        mutIndex(i) = randi(gaInitPopSize);    % member to mutate
+        childMut(:,i) = gaVisitOrder(:,mutIndex(i));
     end
+    
+    if gaMutationType == 1 % random reset
+        
+        childMut(end,:) = [];   % delete loopback entry so array is unique
+        
+        for i=1:mutateNum
+            
+            childMut(:,i) = randperm(maxCities);
+            
+            % shift matrix so starting city is correct
+            k = find(childMut(:,i) == startingCity);
+            childMut(:,i) = circshift(childMut(:,i), (maxCities+1) - k);
+            
+        end
+        
+        % copy first entry and place it on back (path loopback)
+        arr = ones(1,mutateNum);   % array to write entire row at once
+        arr = arr * startingCity;
+        childMut(end+1,:) = arr;    % append new entry
+        
+        if verbose
+            fprintf('New mutation (displayed concatenated): [');
+            fprintf('%g ', childMut);
+            fprintf(']\n');
+        end
+        
+        % write mutations back into population
+        for i=1:mutateNum
+            gaVisitOrder(:,mutIndex(i)) = childMut(:,i);
+        end
+        
+        
+    end %end random reset algorithm
     
     
     
