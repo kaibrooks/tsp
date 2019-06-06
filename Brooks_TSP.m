@@ -3,44 +3,66 @@
 % github.com/kaibrooks
 % Jun 2019
 %
-% Solves the travelling salesman problem
+% Computes the travelling salesman problem three different ways.
+% https://en.wikipedia.org/wiki/Travelling_salesman_problem
 %
-% Green: BF method
-% Red:   NN method
-% Blue:  GA method
-
-% Options are below, enable/disable various algorithms, such as disabling
-% BF method when n > 12
+% Readme:
+% Options are below. Basic options enable/disable various algorithms,
+% advanced options modify generator settings and adjust various selection /
+% computation parameters with often unexpected results, and will likely not
+% function correctly for numbers vastly outside their defaults.
 %
 % Algorithm basics:
-%   Bruteforce (green)
-%   Computes every possible combination of routes, finds the lowest
+%   Bruteforce (green)-
+%   Computes every possible combination of routes, finds the shortest. This
+%   method is impractical or impossible for n > ~12 (ie, n=14 requires
+%   42.8GB of RAM and takes a few days to compute). This method does not 
+%   use any sort of dynamic/parallel programming or other shortcuts.
 %
-%   Nearest-neighbor (red)
-%   Finds closest point to current point, loops back to start at end
+%   Nearest-neighbor (red)-
+%   Finds closest point to current point, loops back to start at end. If
+%   gifoutput, this method plots 'decision lines' as well.
 %
-%   Genetic Algorithm (blue)
+%   Genetic Algorithm (blue)-
 %   Attemps many possible routes, takes the best of those and tries
-%   again with a new set of similar routes
-%   Note:
+%   again with a new set of similar routes. Take note of the performance
+%   change by generation plot upon completion, it notes approximately how
+%   many iterations of the GA will be needed to outperform NN.
+%   Note: Genetic algorithm may produce unforseen errors when its settings 
+%   are drastically different from defaults, and the program will not check
+%   for validity before attemping to run them.
+%
+% Use cases:
+%   By default, this program will run n=9, which allows for all three
+%   algorithms to run.
+%
+%   For more intersting applications of the NN/GA algorithms, use n > ~25 
+%   (and disable the GA, unless you have 10^15 gigabytes of RAM and 10^13 
+%   years to wait).
+%   At n > ~60, the computational complexity exceeds the number of atoms in
+%   the universe, and would take about 10^70 years to solve.
+%
+%   Many variables are set by default in the range of what a 2.3GHz i7 CPU 
+%   from 2013 can compute within reasonable time.
+
 
 % Init
 clc
 close all
 clear all
 format
-rng('default')
+rng('shuffle')
 
 
 %% --- Options ------------------------------------------------------------
 %  --- Main Options -------------------------------------------------------
-maxCities = 25;          % (default 9) number of cities to visit, this is the 'n'
-gifOutput = 0;          % enables gif output and generation, slows rendering
+maxCities = 9;          % (default 9) number of cities to visit, this is the 'n'
+gifOutput = 1;          % enables gif output and generation, slows rendering
 filename = 'tsp.gif';   % output filename for the gif
 verbose = 0;            % (default 0) outputs a pile of text while running
 
 % Algorithm enables (with all disabled, just generates the map)
-bf = 0;                   % bruteforce algorithm
+bf = 1;                   % bruteforce algorithm
 nn = 1;                   % nearest-neighbor algorithm
 gena = 1;                 % genetic algorithm
 
@@ -50,19 +72,20 @@ gaOrderedCrossover = 1;   % ordered crossover variant
 
 % --- Advanced options and generator settings -----------------------------
 
-outputResults = 1;       % (default 1) shows analysis at completion
+outputResults = 1;          % (default 1) shows analysis at completion
 
 gaSelectionFactor = 2;      % (default 2) fractional number of members to select each epoch (eg: 3 = 1/3 of members)
-gaInitPopSize = 100;         % (default 180, min 16) population for genetic algorithm
+gaInitPopSize = 100;        % (default 100, min 16) population for genetic algorithm
 gaMutationRate = 0.01;      % (default 0.01) mutate this portion of the population (0.01 = 1%)
-gaMaxGenerations = 500;    % (default 500 number of times ga generates new pop
+gaMaxGenerations = 500;     % (default 500) number of times ga generates new pop
 gaElitism = 0.2;            % (default 0.2, max 0.4) elitism, in %. 0 to disable
 
+pfitStart = 0.1;        % (default 0.1) start the polyfit after this %, used to ignore early transients in initial population
 bfTickSize = 10000;     % (default 10000) tick size for timing BF algorithm. Higher numbers = more accuracy, slower to display estimate
 
 minLoc = 1;             % (default 1) minimum coordinate to generate for city locations
 maxLoc = 100;           % (default 100) maximum coordinate to generate for city locations
-plotMarkerSize = 10;    % (default 10) size of markers on map
+plotScale = 10;         % (default 10) size of markers on map
 showLabels = 1;         % (default 1) display city numbers on plot
 
 
@@ -113,7 +136,20 @@ visitedOrder(currentCity) = 1;      % mark out starting city on the path
 % Create figure
 f = figure('Name','Stacked Routes','units','normalized','NumberTitle','off');%,'outerposition',[0 0 1 1]);
 axis tight manual % this ensures that getframe() returns a consistent size
-title('Green: BF  -  Red: NN  -  Green: GA')
+
+titleStr = '';
+s1 = '';
+s2 = '';
+s3 = '';
+
+if bf, s1 = 'Green: BF- ';, end
+if nn, s2 = 'Red: NN - ';, end
+if gena, s3 = 'Blue: GA';, end
+
+titleStr = strcat(titleStr, s1, s2, s3);
+title(titleStr);
+
+clear s1, clear s2, clear s3
 
 xlabel('Latitude')
 ylabel('Longitude')
@@ -130,10 +166,10 @@ txt = '    \leftarrow Start';
 for i=1:maxCities
     
     if i == startingCity
-        plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotMarkerSize)
+        plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotScale)
         
     else
-        plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize)
+        plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotScale)
     end
     if showLabels, text(cities(i,1),cities(i,2),sprintf('   %i', i)), end
     
@@ -230,7 +266,7 @@ if bf
         
         x = [a(1), b(1)];
         y = [a(2), b(2)];
-        plot(x,y,'g','LineWidth',plotMarkerSize/6)
+        plot(x,y,'g','LineWidth',plotScale/6)
         
         
         %bfVisitOrder(i:4,bfShortest) gives path
@@ -290,12 +326,12 @@ if nn
                 x = [cities(currentCity,1), cities(i,1)];
                 y = [cities(currentCity,2), cities(i,2)];
                 
-                h = plot(x,y,'c:','LineWidth',plotMarkerSize/6);
+                h = plot(x,y,'c:','LineWidth',plotScale/6);
                 uistack(h,'bottom');
                 
                 drawnow
                 % Capture the plot as an image
-                title("" + o_nn)
+                %title("" + o_nn)
                 if  gifWritten == 0
                     gifWritten = 1;
                     gif(filename,'DelayTime',0.01,'LoopCount',1,'frame',gcf)
@@ -333,7 +369,7 @@ if nn
         % Plot line to shortest next, vector 1 is both x's, 2 is both y's
         x = [cities(currentCity,1), cities(nextCity,1)];
         y = [cities(currentCity,2), cities(nextCity,2)];
-        plot(x,y,'r--','LineWidth',plotMarkerSize/8)
+        plot(x,y,'r--','LineWidth',plotScale/8)
         
         %txt = 'Next \rightarrow  ';
         %text(cities(nextCity,1),cities(nextCity,2),txt,'HorizontalAlignment','right')
@@ -362,7 +398,7 @@ if nn
     
     x = [cities(currentCity,1), cities(startingCity,1)];
     y = [cities(currentCity,2), cities(startingCity,2)];
-    plot(x,y,'r--','LineWidth',plotMarkerSize/8)
+    plot(x,y,'r--','LineWidth',plotScale/8)
     
     if gifOutput
         drawnow
@@ -711,7 +747,7 @@ if gena
         
         x = [a(1), b(1)];
         y = [a(2), b(2)];
-        plot(x,y,'b--','LineWidth',plotMarkerSize/6)
+        plot(x,y,'b--','LineWidth',plotScale/6)
         
         
         %bfVisitOrder(i:4,bfShortest) gives path
@@ -726,18 +762,27 @@ if gena
     hold on
     grid on
     gaPlotX = [1:gaGeneration]; % make a linear axis for plotting
-    plot(gaPlotX,gaFitnessMean,'k.','MarkerSize',plotMarkerSize)
+    plot(gaPlotX,gaFitnessMean,'m.','MarkerSize',plotScale)
     
     %x = 1:10;
     %y1 = x + randn(1,10);
     %scatter(x,y1,25,'b','*')
-    p = polyfit(gaPlotX,gaFitnessMean,1);
-    yfit = p(1)*gaPlotX+p(2);
-    plot(gaPlotX,yfit,'b-','MarkerSize',plotMarkerSize*1.5);
+    %   p = polyfit(gaPlotX,gaFitnessMean,1);
+    %p(~ismember(p,outliers)); % purge outliers
+    
+    [p,s] = polyfit(gaPlotX,gaFitnessMean,1);
+    
+    [Yfit,delta] = polyval(p,gaPlotX,s);
+    
+    yfit = polyval(p,gaPlotX,s);
+    %   yfit = p(1)*gaPlotX+p(2);
+    %plot(gaPlotX,yfit,'b-','MarkerSize',plotMarkerSize*1.5);
+    plot(gaPlotX,yfit,'-b', gaPlotX,yfit+delta,'--b', gaPlotX,yfit-delta,'--b')
+    
     gaFitnessSlope = p(1);
     xlabel('Generation')
     ylabel('Fitness')
-    legend('Avg Generational Fitness',['Slope = ',num2str(gaFitnessSlope)])
+    legend('Avg Generational Fitness',['Slope = ',num2str(gaFitnessSlope)],'Delta')
     title('Genetic Algorithm Performance')
     %title(['Slope is ',num2str(gaFitnessSlope)])
     
@@ -748,23 +793,23 @@ figure('Name','Split Routes','NumberTitle','off');
 
 axis tight manual
 
-if bf
+
 subplot(2,2,1)
 grid on
 hold on
 xlim([minLoc maxLoc])
 ylim([minLoc maxLoc])
-title('BF')
+if ~bf, title('BF (not run)'), else, title('BF'), end
 
 % BF
-
+if bf
     for i=1:maxCities
         
         if i == startingCity
-            plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotMarkerSize/2)
+            plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotScale/2)
             
         else
-            plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize/2)
+            plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotScale/2)
         end
     end
     for i=1:maxCities
@@ -772,26 +817,25 @@ title('BF')
         b = [cities(bfVisitOrder(i+1,bfMinIndex),1), cities(bfVisitOrder(i+1,bfMinIndex),2)];
         x = [a(1), b(1)];
         y = [a(2), b(2)];
-        plot(x,y,'g','LineWidth',plotMarkerSize/8)
+        plot(x,y,'g','LineWidth',plotScale/8)
     end
-    
-    subplot(2,2,4)
-    grid on
-    hold on
-    xlim([minLoc maxLoc])
-    ylim([minLoc maxLoc])
-    title('GA')
 end
 
 % GA
+subplot(2,2,4)
+grid on
+hold on
+xlim([minLoc maxLoc])
+ylim([minLoc maxLoc])
+if ~gena, title('GA (not run)'), else, title('GA'), end
 if gena
     for i=1:maxCities
         
         if i == startingCity
-            plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotMarkerSize/2)
+            plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotScale/2)
             
         else
-            plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize/2)
+            plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotScale/2)
         end
     end
     for i=1:maxCities
@@ -799,26 +843,27 @@ if gena
         b = [cities(gaVisitOrder(i+1,gaMinIndex),1), cities(gaVisitOrder(i+1,gaMinIndex),2)];
         x = [a(1), b(1)];
         y = [a(2), b(2)];
-        plot(x,y,'b','LineWidth',plotMarkerSize/8)
+        plot(x,y,'b','LineWidth',plotScale/8)
     end
     
-    subplot(2,2,3)
-    grid on
-    hold on
-    xlim([minLoc maxLoc])
-    ylim([minLoc maxLoc])
-    title('NN')
 end
+
+subplot(2,2,3)
+grid on
+hold on
+xlim([minLoc maxLoc])
+ylim([minLoc maxLoc])
+if ~nn, title('NN (not run)'), else, title('NN'), end
 
 % NN
 if nn
     for i=1:maxCities
         
         if i == startingCity
-            plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotMarkerSize/2)
+            plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotScale/2)
             
         else
-            plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize/2)
+            plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotScale/2)
         end
     end
     for i=1:maxCities
@@ -826,7 +871,7 @@ if nn
         b = [cities(nnVisitOrder(i+1),1), cities(nnVisitOrder(i+1),2)];
         x = [a(1), b(1)];
         y = [a(2), b(2)];
-        plot(x,y,'r','LineWidth',plotMarkerSize/8)
+        plot(x,y,'r','LineWidth',plotScale/8)
         
     end
 end
