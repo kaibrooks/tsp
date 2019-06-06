@@ -37,7 +37,7 @@
 %   algorithms to run.
 %
 %   For more intersting applications of the NN/GA algorithms, use n > ~25 
-%   (and disable the GA, unless you have 10^15 gigabytes of RAM and 10^13 
+%   (and disable the BF, unless you have 10^15 gigabytes of RAM and 10^13 
 %   years to wait).
 %   At n > ~60, the computational complexity exceeds the number of atoms in
 %   the universe, and would take about 10^70 years to solve.
