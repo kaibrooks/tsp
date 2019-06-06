@@ -22,41 +22,41 @@
 %   Genetic Algorithm (blue)
 %   Attemps many possible routes, takes the best of those and tries
 %   again with a new set of similar routes
-
+%   Note:
 
 % Init
 clc
 close all
 clear all
 format
-rng('shuffle')
+rng('default')
 
 
 %% --- Options ------------------------------------------------------------
 %  --- Main Options -------------------------------------------------------
-maxCities = 9;          % (default 9) number of cities to visit, this is the 'n'
-gifOutput = 1;          % enables gif output and generation, slows rendering
+maxCities = 25;          % (default 9) number of cities to visit, this is the 'n'
+gifOutput = 0;          % enables gif output and generation, slows rendering
 filename = 'tsp.gif';   % output filename for the gif
 verbose = 0;            % (default 0) outputs a pile of text while running
 
 % Algorithm enables (with all disabled, just generates the map)
-bf = 1;                   % bruteforce algorithm
+bf = 0;                   % bruteforce algorithm
 nn = 1;                   % nearest-neighbor algorithm
 gena = 1;                 % genetic algorithm
 
 % genetic algorithm selection processes
-gaRandomCrossover = 1;    % random crossover variant
-gaOrderedCrossover = 0;   % ordered crossover variant
+gaRandomCrossover = 0;    % random crossover variant
+gaOrderedCrossover = 1;   % ordered crossover variant
 
 % --- Advanced options and generator settings -----------------------------
 
-outputResults = 1;      % (default 1) shows analysis at completion
+outputResults = 1;       % (default 1) shows analysis at completion
 
-gaSelectionFactor = 2;  % (default 2) fractional number of members to select each epoch (eg: 3 = 1/3 of members)
-gaInitPopSize = 36;     % (default 180, min 16) population for genetic algorithm
-gaMutationRate = 0.01;  % (default 0.01) mutate this portion of the population (0.01 = 1%)
-gaMaxGenerations = 1000; % (default ???) number of times ga generates new pop
-
+gaSelectionFactor = 2;      % (default 2) fractional number of members to select each epoch (eg: 3 = 1/3 of members)
+gaInitPopSize = 100;         % (default 180, min 16) population for genetic algorithm
+gaMutationRate = 0.01;      % (default 0.01) mutate this portion of the population (0.01 = 1%)
+gaMaxGenerations = 500;    % (default 500 number of times ga generates new pop
+gaElitism = 0.2;            % (default 0.2, max 0.4) elitism, in %. 0 to disable
 
 bfTickSize = 10000;     % (default 10000) tick size for timing BF algorithm. Higher numbers = more accuracy, slower to display estimate
 
@@ -290,7 +290,7 @@ if nn
                 x = [cities(currentCity,1), cities(i,1)];
                 y = [cities(currentCity,2), cities(i,2)];
                 
-                h = plot(x,y,'c:','LineWidth',plotMarkerSize/6)
+                h = plot(x,y,'c:','LineWidth',plotMarkerSize/6);
                 uistack(h,'bottom');
                 
                 drawnow
@@ -385,8 +385,8 @@ minDist = 0;
 
 %% Genetic Algorithm
 if gena
-    gaFitnessMean = 0
-    
+    gaFitnessMean = 0;
+    fprintf('Creating genes...\n')
     % create genes
     linearPath = [1:maxCities];
     
@@ -409,7 +409,7 @@ if gena
     gaVisitOrder = [gaVisitOrder;arr];
     
     % dont add remaining city, just go back to it and let the ga sort it out?
-    
+    fprintf('Starting algorithm...\n')
     for gaGeneration=1:gaMaxGenerations
         o_ga = o_ga + 1;
         if gaGeneration==1,tic,end % start the clock
@@ -469,6 +469,42 @@ if gena
         
         % ** select members
         selected = zeros(1,gaInitPopSize);
+        
+        % use elitism to ensure high performers breed
+        if gaElitism > 0
+            % this automatically selects the top members and kills off the
+            % bottom members
+            
+            gaElites = ceil(gaElitism*gaInitPopSize); % number of members who are elites
+            
+            % mark worst performers
+            for i = 1:gaElites
+                [q tempToDelete(i)] = min(gaFitness);
+                gaFitness(tempToDelete(i)) = 2;  % maxing value so it doesn't get picked again
+            end
+            
+            % kill off 'marked' worst performers
+            for i = 1:length(tempToDelete)
+                [q w] = max(gaFitness);
+                gaFitness(w) = 0;
+            end
+            
+            clear q;
+            clear w;
+            
+            % select the best performers
+            for i = 1:gaElites
+                [q w] = max(gaFitness);
+                selected(w) = 1;
+                gaFitness(w) = 0;
+            end
+            
+            clear q;
+            clear w;
+            
+        end
+        
+        
         while sum(selected) < (gaInitPopSize/gaSelectionFactor) % run until it selects 1/selectionFactor of the members
             a = rand();
             for i = 1:gaInitPopSize;
@@ -482,6 +518,8 @@ if gena
                 end
             end
         end
+        
+        
         
         % get parents chromosomes
         tempMean = 0;
@@ -539,6 +577,7 @@ if gena
                     hit = hit+1;
                 else
                     miss = miss+1;
+                    fprintf('%i miss on newmember...\n',miss)
                 end
                 
             end
@@ -683,7 +722,7 @@ if gena
     
     % plot historical fitness
     figure('Name','Genetic Algorithm Performance','NumberTitle','off');
-
+    
     hold on
     grid on
     gaPlotX = [1:gaGeneration]; % make a linear axis for plotting
@@ -709,6 +748,7 @@ figure('Name','Split Routes','NumberTitle','off');
 
 axis tight manual
 
+if bf
 subplot(2,2,1)
 grid on
 hold on
@@ -717,75 +757,79 @@ ylim([minLoc maxLoc])
 title('BF')
 
 % BF
-% Plot cities
-for i=1:maxCities
-    
-    if i == startingCity
-        plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotMarkerSize/2)
-        
-    else
-        plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize/2)
-    end
-end
-for i=1:maxCities
-    a = [cities(bfVisitOrder(i,bfMinIndex),1), cities(bfVisitOrder(i,bfMinIndex),2)];
-    b = [cities(bfVisitOrder(i+1,bfMinIndex),1), cities(bfVisitOrder(i+1,bfMinIndex),2)];
-    x = [a(1), b(1)];
-    y = [a(2), b(2)];
-    plot(x,y,'g','LineWidth',plotMarkerSize/8)
-end
 
-subplot(2,2,4)
-grid on
-hold on
-xlim([minLoc maxLoc])
-ylim([minLoc maxLoc])
-title('GA')
+    for i=1:maxCities
+        
+        if i == startingCity
+            plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotMarkerSize/2)
+            
+        else
+            plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize/2)
+        end
+    end
+    for i=1:maxCities
+        a = [cities(bfVisitOrder(i,bfMinIndex),1), cities(bfVisitOrder(i,bfMinIndex),2)];
+        b = [cities(bfVisitOrder(i+1,bfMinIndex),1), cities(bfVisitOrder(i+1,bfMinIndex),2)];
+        x = [a(1), b(1)];
+        y = [a(2), b(2)];
+        plot(x,y,'g','LineWidth',plotMarkerSize/8)
+    end
+    
+    subplot(2,2,4)
+    grid on
+    hold on
+    xlim([minLoc maxLoc])
+    ylim([minLoc maxLoc])
+    title('GA')
+end
 
 % GA
-for i=1:maxCities
-    
-    if i == startingCity
-        plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotMarkerSize/2)
+if gena
+    for i=1:maxCities
         
-    else
-        plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize/2)
+        if i == startingCity
+            plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotMarkerSize/2)
+            
+        else
+            plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize/2)
+        end
     end
+    for i=1:maxCities
+        a = [cities(gaVisitOrder(i,gaMinIndex),1), cities(gaVisitOrder(i,gaMinIndex),2)];
+        b = [cities(gaVisitOrder(i+1,gaMinIndex),1), cities(gaVisitOrder(i+1,gaMinIndex),2)];
+        x = [a(1), b(1)];
+        y = [a(2), b(2)];
+        plot(x,y,'b','LineWidth',plotMarkerSize/8)
+    end
+    
+    subplot(2,2,3)
+    grid on
+    hold on
+    xlim([minLoc maxLoc])
+    ylim([minLoc maxLoc])
+    title('NN')
 end
-for i=1:maxCities
-    a = [cities(gaVisitOrder(i,gaMinIndex),1), cities(gaVisitOrder(i,gaMinIndex),2)];
-    b = [cities(gaVisitOrder(i+1,gaMinIndex),1), cities(gaVisitOrder(i+1,gaMinIndex),2)];
-    x = [a(1), b(1)];
-    y = [a(2), b(2)];
-    plot(x,y,'b','LineWidth',plotMarkerSize/8)
-end
-
-subplot(2,2,3)
-grid on
-hold on
-xlim([minLoc maxLoc])
-ylim([minLoc maxLoc])
-title('NN')
 
 % NN
-for i=1:maxCities
-    
-    if i == startingCity
-        plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotMarkerSize/2)
+if nn
+    for i=1:maxCities
         
-    else
-        plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize/2)
+        if i == startingCity
+            plot(cities(i,1),cities(i,2),'bo','MarkerSize',plotMarkerSize/2)
+            
+        else
+            plot(cities(i,1),cities(i,2),'k^','MarkerSize',plotMarkerSize/2)
+        end
+    end
+    for i=1:maxCities
+        a = [cities(nnVisitOrder(i),1), cities(nnVisitOrder(i),2)];
+        b = [cities(nnVisitOrder(i+1),1), cities(nnVisitOrder(i+1),2)];
+        x = [a(1), b(1)];
+        y = [a(2), b(2)];
+        plot(x,y,'r','LineWidth',plotMarkerSize/8)
+        
     end
 end
-for i=1:maxCities
-    a = [cities(nnVisitOrder(i),1), cities(nnVisitOrder(i),2)];
-    b = [cities(nnVisitOrder(i+1),1), cities(nnVisitOrder(i+1),2)];
-    x = [a(1), b(1)];
-    y = [a(2), b(2)];
-    plot(x,y,'r','LineWidth',plotMarkerSize/8)
-    
-end
-
 
 %% ---- Results and Analysis ----------------------------------------------
 if outputResults
