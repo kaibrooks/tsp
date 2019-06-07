@@ -1,4 +1,4 @@
-% TSP
+% TSP 3-way
 % Kai Brooks
 % github.com/kaibrooks
 % Jun 2019
@@ -7,17 +7,18 @@
 % https://en.wikipedia.org/wiki/Travelling_salesman_problem
 %
 % Readme:
-% Options are below. Basic options enable/disable various algorithms,
-% advanced options modify generator settings and adjust various selection /
-% computation parameters with often unexpected results, and will likely not
-% function correctly for numbers vastly outside their defaults.
+%   Options are below. Basic options enable/disable various algorithms,
+%   advanced options modify generator settings and adjust various selection /
+%   computation parameters with often unexpected results, and will likely not
+%   function correctly for numbers vastly outside their defaults.
 %
 % Algorithm basics:
 %   Bruteforce (green)-
 %   Computes every possible combination of routes, finds the shortest. This
 %   method is impractical or impossible for n > ~12 (ie, n=14 requires
-%   42.8GB of RAM and takes a few days to compute). This method does not 
-%   use any sort of dynamic/parallel programming or other shortcuts.
+%   42.8GB of RAM and takes a few days to compute). This method does not
+%   use any sort of dynamic/parallel programming or other shortcuts. This
+%   method will always produce the correct (best possible) solution.
 %
 %   Nearest-neighbor (red)-
 %   Finds closest point to current point, loops back to start at end. If
@@ -28,7 +29,7 @@
 %   again with a new set of similar routes. Take note of the performance
 %   change by generation plot upon completion, it notes approximately how
 %   many iterations of the GA will be needed to outperform NN.
-%   Note: Genetic algorithm may produce unforseen errors when its settings 
+%   Note: Genetic algorithm may produce unforseen errors when its settings
 %   are drastically different from defaults, and the program will not check
 %   for validity before attemping to run them.
 %
@@ -36,13 +37,13 @@
 %   By default, this program will run n=9, which allows for all three
 %   algorithms to run.
 %
-%   For more intersting applications of the NN/GA algorithms, use n > ~25 
-%   (and disable the BF, unless you have 10^15 gigabytes of RAM and 10^13 
+%   For more intersting applications of the NN/GA algorithms, use n > ~25
+%   (and disable the BF, unless you have 10^15 gigabytes of RAM and 10^13
 %   years to wait).
 %   At n > ~60, the computational complexity exceeds the number of atoms in
 %   the universe, and would take about 10^70 years to solve.
 %
-%   Many variables are set by default in the range of what a 2.3GHz i7 CPU 
+%   Many variables are set by default in the range of what a 2.3GHz i7 CPU
 %   from 2013 can compute within reasonable time.
 
 
@@ -62,44 +63,46 @@ filename = 'tsp.gif';   % output filename for the gif
 verbose = 0;            % (default 0) outputs a pile of text while running
 
 % Algorithm enables (with all disabled, just generates the map)
-bf = 1;                   % bruteforce algorithm
-nn = 1;                   % nearest-neighbor algorithm
-gena = 1;                 % genetic algorithm
+bf = 1;                 % bruteforce algorithm
+nn = 1;                 % nearest-neighbor algorithm
+gena = 1;               % genetic algorithm
 
 % genetic algorithm selection processes
-gaRandomCrossover = 0;    % random crossover variant
-gaOrderedCrossover = 1;   % ordered crossover variant
+gaRandomCrossover = 0;  % (default 0) random crossover variant, hangs with too large n
+gaOrderedCrossover = 1; % (default 1) ordered crossover variant
 
-% --- Advanced options and generator settings -----------------------------
+% --- Plot and display settings -------------------------------------------
 
-outputResults = 1;          % (default 1) shows analysis at completion
-
-gaSelectionFactor = 2;      % (default 2) fractional number of members to select each epoch (eg: 3 = 1/3 of members)
-gaInitPopSize = 100;        % (default 100, min 16) population for genetic algorithm
-gaMutationRate = 0.01;      % (default 0.01) mutate this portion of the population (0.01 = 1%)
-gaMaxGenerations = 500;     % (default 500) number of times ga generates new pop
-gaElitism = 0.2;            % (default 0.2, max 0.4) elitism, in %. 0 to disable
-
-pfitStart = 0.1;        % (default 0.1) start the polyfit after this %, used to ignore early transients in initial population
-bfTickSize = 10000;     % (default 10000) tick size for timing BF algorithm. Higher numbers = more accuracy, slower to display estimate
-
-minLoc = 1;             % (default 1) minimum coordinate to generate for city locations
-maxLoc = 100;           % (default 100) maximum coordinate to generate for city locations
 plotScale = 10;         % (default 10) size of markers on map
 showLabels = 1;         % (default 1) display city numbers on plot
 
+outputResults = 1;      % (default 1) shows analysis at completion
+
+% --- Advanced options and generator settings -----------------------------
+
+
+minLoc = 1;             % (default 1) minimum coordinate to generate for city locations
+maxLoc = 100;           % (default 100) maximum coordinate to generate for city locations
+
+gaSelectionFactor = 2;  % (default 2) fractional number of members to select each epoch (eg: 3 = 1/3 of members)
+gaInitPopSize = 100;    % (default 100) population for genetic algorithm
+gaMutationRate = 0.01;  % (default 0.01) mutate this portion of the population (0.01 = 1%)
+gaMaxGenerations = 500; % (default 500) number of times ga generates new pop
+gaElitism = 0.2;        % (default 0.2, max 0.4) elitism, in %. 0 to disable
+
+bfTickSize = 10000;     % (default 10000) tick size for timing BF algorithm. Higher numbers = more accuracy, slower to display estimate
 
 attempts = 100;         % number of attempts to bruteforce the solution before giving up
 maxCpuTime = 100;       % max loops various functions will use before giving up and moving on
 
-% --- Zero other variables (do not modify) --------------------------------
+% --- Init other variables (do not modify) --------------------------------
 
 totalDist = 0;          % total distance travelled
 gifWritten = 0;         % one-time check for gif creation
 
-o_nn = 0;               % big o for nearest neighbor method
-o_bf = 0;               % big o for bruteforce method
-o_ga = 0;
+o_nn = 0;               % o for nearest neighbor method
+o_bf = 0;               % o for bruteforce method
+o_ga = 0;               % o for genetic method
 nn_distance = 0;        % total minimum distance
 bf_distance = 0;
 ga_distance = 0;
@@ -231,18 +234,20 @@ if bf
         totalDist = 0;              % reset for the next run
         
         % Output running information
-        if ~verbose, clc, end
-        fprintf('Starting BF for n=%i, O(n!)=%i \n',maxCities, bf_omax)
-        
-        if length(bfVisitOrder) > bfTickSize % only display if enough data to estimate
-            if bfEstimatedTime > 0
-                fprintf('Estimated runtime: %s\n',formatTime(bfEstimatedTime))
-            else
-                fprintf('Estimated runtime: (Sampling %i more times..)\n',bfTickSize-j)
+        if ~verbose
+            clc
+            fprintf('Starting BF for n=%i, O(n!)=%i \n',maxCities, bf_omax)
+            
+            if length(bfVisitOrder) > bfTickSize % only display if enough data to estimate
+                if bfEstimatedTime > 0
+                    fprintf('Estimated runtime: %s\n',formatTime(bfEstimatedTime))
+                else
+                    fprintf('Estimated runtime: (Sampling %i more times..)\n',bfTickSize-j)
+                end
             end
+            fprintf('Current runtime  : %s\n',formatTime(toc))
+            fprintf('Computing optimal route... %.2f%% \n', (o_bf / bf_omax) * 100)
         end
-        fprintf('Current runtime  : %s\n',formatTime(toc))
-        fprintf('Computing optimal route... %.2f%% \n', (o_bf / bf_omax) * 100)
         
     end % end of loop
     
