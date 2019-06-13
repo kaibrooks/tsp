@@ -58,7 +58,7 @@ rng('shuffle')
 %% --- Options ------------------------------------------------------------
 %  --- Main Options -------------------------------------------------------
 maxCities = 9;          % (default 9) number of cities to visit, this is the 'n'
-gifOutput = 1;          % enables gif output and generation, slows rendering
+gifOutput = 0;          % enables gif output and generation, slows rendering
 filename = 'tsp.gif';   % output filename for the gif
 verbose = 0;            % (default 0) outputs a pile of text while running
 
